@@ -24,11 +24,11 @@ describe('Banners store', () => {
 		} as unknown as typeof settingsStore.settings;
 	});
 
-	it('should add non-production license banner to stack based on enterprise settings', () => {
+	it('should add trial banner to stack based on enterprise settings', () => {
 		bannersStore.loadStaticBanners({
-			banners: ['NON_PRODUCTION_LICENSE'],
+			banners: ['TRIAL'],
 		});
-		expect(bannersStore.bannerStack).toContain('NON_PRODUCTION_LICENSE');
+		expect(bannersStore.bannerStack).toContain('TRIAL');
 	});
 
 	it("should add V1 banner to stack if it's not dismissed", () => {

@@ -63,11 +63,11 @@ test.describe(
 		annotation: [{ type: 'owner', description: 'Adore' }],
 	},
 	() => {
-		test('should show updates in help section', async ({ n8n, setupRequirements }) => {
+		test('should show updates in settings menu', async ({ n8n, setupRequirements }) => {
 			await setupRequirements(requirements);
 			await n8n.goHome();
 			await n8n.sideBar.expand();
-			await n8n.sideBar.clickHelpMenuItem();
+			await n8n.sideBar.openSettings();
 			await expect(n8n.sideBar.getVersionUpdateItem()).toContainText('Update (2 versions behind)');
 		});
 	},

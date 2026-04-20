@@ -1,6 +1,6 @@
 import { useDebugInfo } from '@/app/composables/useDebugInfo';
 
-const BASE_FORUM_URL = 'https://github.com/n8n-io/n8n/issues/new?labels=bug-report';
+const BASE_REPORT_URL = 'https://community.n8n.io/new-topic';
 
 const REPORT_TEMPLATE = `
 <!-- Please follow the template below. Skip the questions that are not relevant to you. -->
@@ -28,7 +28,7 @@ export function useBugReporting() {
 	const debugInfo = useDebugInfo();
 
 	const getReportingURL = () => {
-		const url = new URL(BASE_FORUM_URL);
+		const url = new URL(BASE_REPORT_URL);
 
 		const report = `${REPORT_TEMPLATE}\n${debugInfo.generateDebugInfo({ skipSensitive: true, secondaryHeader: true })}`;
 		url.searchParams.append('body', report);

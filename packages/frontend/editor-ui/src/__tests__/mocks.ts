@@ -278,7 +278,6 @@ export function createMockEnterpriseSettings(
 		sourceControl: false,
 		auditLogs: false,
 		externalSecrets: false,
-		showNonProdBanner: false,
 		debugInEditor: false,
 		binaryDataS3: false,
 		workerView: false,

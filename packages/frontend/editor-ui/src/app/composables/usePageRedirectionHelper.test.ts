@@ -66,13 +66,13 @@ describe('usePageRedirectionHelper', () => {
 			'default',
 			'production',
 			ROLE.Owner,
-			'https://n8n.io/pricing?utm_campaign=upgrade-api&source=advanced-permissions',
+			'https://docs.n8n.io/?utm_source=n8n_app&utm_medium=app_sidebar&utm_campaign=upgrade-api&source=advanced-permissions',
 		],
 		[
 			'default',
 			'development',
 			ROLE.Owner,
-			'https://n8n.io/pricing?utm_campaign=upgrade-api&source=advanced-permissions',
+			'https://docs.n8n.io/?utm_source=n8n_app&utm_medium=app_sidebar&utm_campaign=upgrade-api&source=advanced-permissions',
 		],
 		[
 			'cloud',
@@ -86,7 +86,7 @@ describe('usePageRedirectionHelper', () => {
 			'cloud',
 			'production',
 			ROLE.Member,
-			'https://n8n.io/pricing?utm_campaign=upgrade-api&source=advanced-permissions',
+			'https://docs.n8n.io/?utm_source=n8n_app&utm_medium=app_sidebar&utm_campaign=upgrade-api&source=advanced-permissions',
 		],
 	])(
 		'"goToUpgrade" should generate the correct URL for "%s" deployment and "%s" license environment and user role "%s"',

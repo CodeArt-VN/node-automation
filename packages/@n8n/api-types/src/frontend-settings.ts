@@ -49,7 +49,6 @@ export interface IEnterpriseSettings {
 	sourceControl: boolean;
 	auditLogs: boolean;
 	externalSecrets: boolean;
-	showNonProdBanner: boolean;
 	debugInEditor: boolean;
 	binaryDataS3: boolean;
 	workerView: boolean;

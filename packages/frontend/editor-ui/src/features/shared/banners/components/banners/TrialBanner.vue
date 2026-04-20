@@ -152,8 +152,21 @@ const currentExecutions = computed(() => {
 	return usedExecutions > executionsQuota ? executionsQuota : usedExecutions;
 });
 
+function isMarketingPricingUrl(href: string): boolean {
+	try {
+		const url = new URL(href);
+		return url.hostname === 'n8n.io' && url.pathname.replace(/\/$/, '').endsWith('/pricing');
+	} catch {
+		return false;
+	}
+}
+
 function onCtaClick() {
 	if (bannerCta.value.href) {
+		if (isMarketingPricingUrl(bannerCta.value.href)) {
+			void pageRedirectionHelper.goToUpgrade('canvas-nav', 'upgrade-canvas-nav', 'redirect');
+			return;
+		}
 		// Use provided href - external URLs open in new tab, internal routes use router
 		if (bannerCta.value.href.startsWith('http')) {
 			window.open(bannerCta.value.href, '_blank');

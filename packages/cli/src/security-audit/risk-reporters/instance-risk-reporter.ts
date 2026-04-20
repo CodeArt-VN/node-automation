@@ -174,6 +174,10 @@ export class InstanceRiskReporter implements RiskReporter {
 	}
 
 	private async getOutdatedState() {
+		if (!this.globalConfig.versionNotifications.enabled) {
+			return null;
+		}
+
 		let versions = [];
 
 		const localVersion = N8N_VERSION;

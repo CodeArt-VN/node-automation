@@ -14,7 +14,7 @@ const MOCK_DYNAMIC_TEMPLATES_HOST = 'https://dynamic-templates.n8n.io/templates'
 describe('DynamicTemplatesService', () => {
 	const mockLogger = mock<Logger>();
 	const mockGlobalConfig = mock<GlobalConfig>({
-		templates: { dynamicTemplatesHost: MOCK_DYNAMIC_TEMPLATES_HOST },
+		templates: { enabled: true, dynamicTemplatesHost: MOCK_DYNAMIC_TEMPLATES_HOST },
 	});
 	let dynamicTemplatesService: DynamicTemplatesService;
 
@@ -24,6 +24,17 @@ describe('DynamicTemplatesService', () => {
 	});
 
 	describe('fetchDynamicTemplates', () => {
+		it('should return empty array when workflow templates are disabled', async () => {
+			mockGlobalConfig.templates.enabled = false;
+
+			const result = await dynamicTemplatesService.fetchDynamicTemplates();
+
+			expect(result).toEqual([]);
+			expect(mockedAxios.get).not.toHaveBeenCalled();
+
+			mockGlobalConfig.templates.enabled = true;
+		});
+
 		it('should return templates from the external API', async () => {
 			const mockTemplates = [
 				{ id: 1, name: 'Template 1' },

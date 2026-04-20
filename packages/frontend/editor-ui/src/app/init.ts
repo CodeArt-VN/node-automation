@@ -145,10 +145,6 @@ export async function initializeAuthenticatedFeatures(
 		await nodeTypesStore.getNodeTranslationHeaders();
 	}
 
-	if (settingsStore.isEnterpriseFeatureEnabled.showNonProdBanner) {
-		bannersStore.pushBannerToStack('NON_PRODUCTION_LICENSE');
-	}
-
 	if (
 		settingsStore.settings.banners &&
 		!settingsStore.settings.banners.dismissed.includes('V1') &&

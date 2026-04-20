@@ -93,10 +93,10 @@ function onLogout() {
 	>
 		<div :class="$style.bottomMenuItems">
 			<template v-for="item in items" :key="item.id">
-				<!-- Help popover -->
+				<!-- Settings popover -->
 				<N8nPopover
-					v-if="item.children && item.id === 'help'"
-					key="help"
+					v-if="item.children && item.id === 'settings'"
+					key="settings"
 					side="right"
 					align="end"
 					:side-offset="12"
@@ -123,35 +123,6 @@ function onLogout() {
 									/>
 									<N8nMenuItem v-else :item="child" @click="() => handleSelect(child.id)" />
 								</template>
-							</template>
-						</div>
-					</template>
-					<template #trigger>
-						<N8nMenuItem
-							:data-test-id="`main-sidebar-${item.id}`"
-							:item="item"
-							:compact="isCollapsed"
-							@click="() => handleSelect(item.id)"
-						/>
-					</template>
-				</N8nPopover>
-				<!-- Settings popover -->
-				<N8nPopover
-					v-else-if="item.children && item.id === 'settings'"
-					key="settings"
-					side="right"
-					align="end"
-					:side-offset="12"
-				>
-					<template #content>
-						<div :class="$style.popover">
-							<template v-for="child in item.children" :key="child.id">
-								<component
-									:is="child.component"
-									v-if="isCustomMenuItem(child)"
-									v-bind="child.props"
-								/>
-								<N8nMenuItem v-else :item="child" @click="() => handleSelect(child.id)" />
 							</template>
 							<span :class="$style.divider" />
 							<N8nMenuItem

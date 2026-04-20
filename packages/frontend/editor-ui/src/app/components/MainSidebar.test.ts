@@ -95,9 +95,9 @@ describe('MainSidebar', () => {
 			versionsStore.nextVersions = [mockVersion];
 			usersStore.canUserUpdateVersion = false;
 
-			const { queryByTestId, getByText } = renderComponent();
+			const { queryByTestId, getByTestId } = renderComponent();
 
-			getByText('Help').click();
+			getByTestId('main-sidebar-settings').click();
 
 			expect(queryByTestId('version-update-cta-button')).not.toBeInTheDocument();
 		});
@@ -107,9 +107,9 @@ describe('MainSidebar', () => {
 			versionsStore.nextVersions = [mockVersion];
 			usersStore.canUserUpdateVersion = true;
 
-			const { getByText, findByTestId } = renderComponent();
+			const { getByTestId, findByTestId } = renderComponent();
 
-			getByText('Help').click();
+			getByTestId('main-sidebar-settings').click();
 
 			const updateButton = await findByTestId('version-update-cta-button');
 			expect(updateButton).toBeInTheDocument();
@@ -155,12 +155,6 @@ describe('MainSidebar', () => {
 			expect(templatesItems).toHaveLength(0);
 		});
 
-		it('should show help menu item', () => {
-			const { getByTestId } = renderComponent();
-
-			expect(getByTestId('main-sidebar-help')).toBeInTheDocument();
-		});
-
 		it('should show settings menu item', () => {
 			const { getByTestId } = renderComponent();
 
@@ -175,12 +169,24 @@ describe('MainSidebar', () => {
 			personalizedTemplatesV3Store.markTemplateRecommendationInteraction = vi.fn();
 		});
 
-		it('should open about modal when about is selected', async () => {
-			const { getByText, findByText } = renderComponent();
+		function dispatchAboutKeyboardShortcut() {
+			const isMac = /mac/i.test(navigator.platform);
+			document.dispatchEvent(
+				new KeyboardEvent('keydown', {
+					key: 'o',
+					code: 'KeyO',
+					altKey: true,
+					bubbles: true,
+					cancelable: true,
+					...(isMac ? { metaKey: true } : { ctrlKey: true }),
+				}),
+			);
+		}
 
-			getByText('Help').click();
-			const aboutItem = await findByText('About n8n');
-			aboutItem.click();
+		it('should open about modal when about is selected', () => {
+			renderComponent();
+
+			dispatchAboutKeyboardShortcut();
 
 			expect(uiStore.openModal).toHaveBeenCalledWith(ABOUT_MODAL_KEY);
 		});
@@ -198,9 +204,9 @@ describe('MainSidebar', () => {
 				},
 			];
 
-			const { getByText, findByText } = renderComponent();
+			const { getByTestId, findByText } = renderComponent();
 
-			getByText('Help').click();
+			getByTestId('main-sidebar-settings').click();
 			const articleItem = await findByText('Test Article');
 			articleItem.click();
 

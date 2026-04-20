@@ -137,7 +137,6 @@ describe('CredentialSharing.ee', () => {
 				workflowDiffs: false,
 				namedVersions: false,
 				provisioning: true,
-				showNonProdBanner: false,
 				projects: {
 					team: {
 						limit: -1,
@@ -282,7 +281,6 @@ describe('CredentialSharing.ee', () => {
 
 				workflowDiffs: false,
 				provisioning: true,
-				showNonProdBanner: false,
 				projects: {
 					team: {
 						limit: -1,

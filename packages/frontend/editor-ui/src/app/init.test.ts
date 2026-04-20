@@ -288,7 +288,6 @@ describe('Init', () => {
 		});
 
 		it('should push banners based on settings', async () => {
-			settingsStore.isEnterpriseFeatureEnabled.showNonProdBanner = true;
 			settingsStore.settings.banners = { dismissed: [] };
 			settingsStore.settings.versionCli = '1.2.3';
 			settingsStore.isCloudDeployment = false;
@@ -298,7 +297,6 @@ describe('Init', () => {
 
 			await initializeAuthenticatedFeatures(false);
 
-			expect(pushBannerSpy).toHaveBeenCalledWith('NON_PRODUCTION_LICENSE');
 			expect(pushBannerSpy).toHaveBeenCalledWith('V1');
 		});
 

@@ -4,7 +4,7 @@ import { useVersionsStore } from '@/app/stores/versions.store';
 import { useTelemetry } from './useTelemetry';
 import { useSettingsStore } from '@/app/stores/settings.store';
 import type { CloudUpdateLinkSourceType, UTMCampaign } from '@/Interface';
-import { N8N_PRICING_PAGE_URL } from '@/app/constants';
+import { EXTERNAL_LINKS } from '@/app/constants/externalLinks';
 import { confirmIfBuilderStreaming } from '@/features/ai/assistant/composables/useBuilderStreamingGuard';
 
 export function usePageRedirectionHelper() {
@@ -46,7 +46,7 @@ export function usePageRedirectionHelper() {
 	/**
 	 * If the user is an instance owner in the cloud, it generates an auto-login link to the
 	 * cloud dashboard that redirects the user to the /account/change-plan page where they upgrade/downgrade the current plan.
-	 * Otherwise, it redirect them our website.
+	 * Otherwise, it redirects them to the documentation.
 	 */
 
 	const goToUpgrade = async (
@@ -80,7 +80,7 @@ export function usePageRedirectionHelper() {
 	};
 
 	const generateUpgradeLink = async (source: string, utm_campaign: string) => {
-		let upgradeLink = N8N_PRICING_PAGE_URL;
+		let upgradeLink: string = EXTERNAL_LINKS.DOCUMENTATION;
 
 		if (usersStore.isInstanceOwner && settingsStore.isCloudDeployment) {
 			upgradeLink = await cloudPlanStore.generateCloudDashboardAutoLoginLink({

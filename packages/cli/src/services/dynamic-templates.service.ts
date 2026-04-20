@@ -15,7 +15,7 @@ export class DynamicTemplatesService {
 	) {}
 
 	async fetchDynamicTemplates(): Promise<DynamicTemplate[]> {
-		if (!this.globalConfig.templates.dynamicTemplatesHost) {
+		if (!this.globalConfig.templates.enabled || !this.globalConfig.templates.dynamicTemplatesHost) {
 			return [];
 		}
 		try {

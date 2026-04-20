@@ -1,72 +1,74 @@
-![Banner image](https://user-images.githubusercontent.com/10284570/173569848-c624317f-42b1-45a6-ab09-f0ea3c247648.png)
+# NodeAutomation (n8n fork)
 
-# n8n - Secure Workflow Automation for Technical Teams
+Short notes for **local development**: stopping all related processes and running **watch** mode (backend + frontend).
 
-n8n is a workflow automation platform that gives technical teams the flexibility of code with the speed of no-code. With 400+ integrations, native AI capabilities, and a fair-code license, n8n lets you build powerful automations while maintaining full control over your data and deployments.
+## Stop everything (API, Vite, Storybook, …)
 
-![n8n.io - Screenshot](https://raw.githubusercontent.com/n8n-io/n8n/master/assets/n8n-screenshot-readme.png)
+On macOS, free the usual dev ports:
 
-## Key Capabilities
-
-- **Code When You Need It**: Write JavaScript/Python, add npm packages, or use the visual interface
-- **AI-Native Platform**: Build AI agent workflows based on LangChain with your own data and models
-- **Full Control**: Self-host with our fair-code license or use our [cloud offering](https://app.n8n.cloud/login)
-- **Enterprise-Ready**: Advanced permissions, SSO, and air-gapped deployments
-- **Active Community**: 400+ integrations and 900+ ready-to-use [templates](https://n8n.io/workflows)
-
-## Quick Start
-
-Try n8n instantly with [npx](https://docs.n8n.io/hosting/installation/npm/) (requires [Node.js](https://nodejs.org/en/)):
-
-```
-npx n8n
+```bash
+for p in 5678 8080 6006 7655; do
+  lsof -nP -tiTCP:"$p" -sTCP:LISTEN 2>/dev/null | xargs kill -9 2>/dev/null
+done
 ```
 
-Or deploy with [Docker](https://docs.n8n.io/hosting/installation/docker/):
+- **5678** — n8n API (`packages/cli`)
+- **8080** — Editor UI / Vite (`packages/frontend/editor-ui`)
+- **6006** — Storybook (if you run `turbo` with `@n8n/storybook`)
+- **7655** — Computer-use gateway (if used)
 
+If something is still bound, inspect and stop manually: `lsof -nP -iTCP -sTCP:LISTEN | grep -E ':(5678|8080|6006|7655)\s'`.
+
+## Run watch mode (recommended: two terminals)
+
+The editor calls the API at `http://localhost:5678/`, so you need **both the backend and Vite**.
+
+### 1) Backend — TypeScript watch + nodemon
+
+```bash
+cd packages/cli
+pnpm dev
 ```
-docker volume create n8n_data
-docker run -it --rm --name n8n -p 5678:5678 -v n8n_data:/home/node/.n8n docker.n8n.io/n8nio/n8n
+
+Wait for a log line like `n8n ready … port 5678`.
+
+### 2) Frontend — Vite dev (HMR / watch)
+
+```bash
+cd packages/frontend/editor-ui
+pnpm dev
 ```
 
-Access the editor at http://localhost:5678
+Open **http://localhost:8080/** — `VUE_APP_URL_BASE_API` points the API at port 5678 (see the `serve` script in `package.json`).
 
-## Resources
+### Why does **http://localhost:5678** still show an “old” UI?
 
-- 📚 [Documentation](https://docs.n8n.io)
-- 🔧 [400+ Integrations](https://n8n.io/integrations)
-- 💡 [Example Workflows](https://n8n.io/workflows)
-- 🤖 [AI & LangChain Guide](https://docs.n8n.io/advanced-ai/)
-- 👥 [Community Forum](https://community.n8n.io)
-- 📖 [Community Tutorials](https://community.n8n.io/c/tutorials/28)
+The backend does not proxy to Vite. Port **5678** serves **static files** from **`n8n-editor-ui/dist`** (output of `pnpm build`), not the sources you are editing.
 
-## Support
+| Approach | Always the latest UI? |
+|----------|------------------------|
+| Work on **http://localhost:8080** (Vite `pnpm dev`) | Yes — HMR; changes show up immediately |
+| Only open **5678** | No — you only see the **last `pnpm build`** in `editor-ui/dist` |
 
-Need help? Our community forum is the place to get support and connect with other users:
-[community.n8n.io](https://community.n8n.io)
+If you **must** see a fresh UI on **5678** (single URL, production-like): after changing code, build the editor and restart the API:
 
-## License
+```bash
+cd packages/frontend/editor-ui && pnpm build
+# stop whatever is holding 5678, then:
+cd packages/cli && pnpm dev
+```
 
-n8n is [fair-code](https://faircode.io) distributed under the [Sustainable Use License](https://github.com/n8n-io/n8n/blob/master/LICENSE.md) and [n8n Enterprise License](https://github.com/n8n-io/n8n/blob/master/LICENSE_EE.md).
+## One command from the repo root (optional)
 
-- **Source Available**: Always visible source code
-- **Self-Hostable**: Deploy anywhere
-- **Extensible**: Add your own nodes and functionality
+Editor UI only via Turbo:
 
-[Enterprise Licenses](mailto:license@n8n.io) available for additional features and support.
+```bash
+pnpm dev:fe:editor
+```
 
-Additional information about the license model can be found in the [docs](https://docs.n8n.io/sustainable-use-license/).
+You still need a separate terminal running `packages/cli` as above, unless the API is already running elsewhere.
 
-## Contributing
+## Notes
 
-Found a bug 🐛 or have a feature idea ✨? Check our [Contributing Guide](https://github.com/n8n-io/n8n/blob/master/CONTRIBUTING.md) for a setup guide & best practices.
-
-## Join the Team
-
-Want to shape the future of automation? Check out our [job posts](https://n8n.io/careers) and join our team!
-
-## What does n8n mean?
-
-**Short answer:** It means "nodemation" and is pronounced as n-eight-n.
-
-**Long answer:** "I get that question quite often (more often than I expected) so I decided it is probably best to answer it here. While looking for a good name for the project with a free domain I realized very quickly that all the good ones I could think of were already taken. So, in the end, I chose nodemation. 'node-' in the sense that it uses a Node-View and that it uses Node.js and '-mation' for 'automation' which is what the project is supposed to help with. However, I did not like how long the name was and I could not imagine writing something that long every time in the CLI. That is when I then ended up on 'n8n'." - **Jan Oberhauser, Founder and CEO, n8n.io**
+- `pnpm dev` at the **repo root** runs Turbo and pulls in **many** packages (Storybook, Playwright, …). For a lighter daily UI workflow, the two commands above are usually enough.
+- Editing **`@n8n/design-system`**: the Vite editor usually resolves aliases to source; if changes do not show up, check `vite.config.mts` and `AGENTS.md` in the repo.

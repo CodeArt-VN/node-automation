@@ -420,6 +420,10 @@ export const useUsersStore = defineStore(STORES.USERS, () => {
 	};
 
 	const submitContactEmail = async (email: string, agree: boolean) => {
+		if (!settingsStore.isTelemetryEnabled) {
+			return null;
+		}
+
 		if (currentUser.value) {
 			return await onboardingApi.submitEmailOnSignup(
 				rootStore.instanceId,

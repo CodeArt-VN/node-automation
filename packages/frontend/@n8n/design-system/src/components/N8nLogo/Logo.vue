@@ -78,13 +78,18 @@ onMounted(() => {
 	}
 }
 
+.logo {
+	fill: red;
+}
+
 .large {
 	transform: scale(2);
 	margin-bottom: var(--spacing--xl);
 
 	.logo,
 	.logoText {
-		transform: scale(1.3) translateY(-2px);
+		/*transform: scale(1.3) translateY(-2px);*/
+		fill: red;
 	}
 
 	.logoText {

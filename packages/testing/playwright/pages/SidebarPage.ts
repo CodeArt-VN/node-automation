@@ -72,17 +72,8 @@ export class SidebarPage {
 		return this.page.getByTestId('about-modal');
 	}
 
-	getHelp(): Locator {
-		return this.container.getByTestId('main-sidebar-help');
-	}
-
-	async clickHelpMenuItem(): Promise<void> {
-		await this.getHelp().click();
-	}
-
 	async clickAboutMenuItem(): Promise<void> {
-		await this.getHelp().click();
-		await this.page.getByTestId('about').click();
+		await this.openAboutModalViaShortcut();
 	}
 
 	async openAboutModalViaShortcut(): Promise<void> {

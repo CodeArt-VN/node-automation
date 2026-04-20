@@ -146,7 +146,7 @@ describe('TrialBanner', () => {
 		expect(goToUpgradeMock).toHaveBeenCalledWith('canvas-nav', 'upgrade-canvas-nav', 'redirect');
 	});
 
-	it('should open external URL in new tab when CTA has external href', () => {
+	it('should use upgrade flow when CTA href points to marketing pricing page', () => {
 		const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
 
 		cloudPlanStore.state.data = {
@@ -162,7 +162,8 @@ describe('TrialBanner', () => {
 		const button = getByText('Learn More');
 		button.click();
 
-		expect(windowOpenSpy).toHaveBeenCalledWith('https://n8n.io/pricing', '_blank');
+		expect(goToUpgradeMock).toHaveBeenCalledWith('canvas-nav', 'upgrade-canvas-nav', 'redirect');
+		expect(windowOpenSpy).not.toHaveBeenCalled();
 		windowOpenSpy.mockRestore();
 	});
 
