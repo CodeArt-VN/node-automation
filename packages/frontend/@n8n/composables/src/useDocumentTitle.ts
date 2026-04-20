@@ -1,6 +1,5 @@
 import { ref, type Ref } from 'vue';
 
-const DEFAULT_TITLE = 'n8n';
 const DEFAULT_TAGLINE = 'Workflow Automation';
 
 export type WorkflowTitleStatus =
@@ -14,8 +13,8 @@ export type WorkflowTitleStatus =
 export interface UseDocumentTitleOptions {
 	/**
 	 * The release channel (e.g., 'stable', 'beta', 'dev').
-	 * If not provided or 'stable', the title will be 'n8n'.
-	 * Otherwise, it will be 'n8n[CHANNEL]'.
+	 * If not provided or 'stable', no channel suffix is appended.
+	 * Otherwise, the suffix is `[CHANNEL]` (uppercased).
 	 */
 	releaseChannel?: string;
 	/**
@@ -27,16 +26,15 @@ export interface UseDocumentTitleOptions {
 
 export function useDocumentTitle(options: UseDocumentTitleOptions = {}) {
 	const { releaseChannel, windowRef } = options;
-	const suffix =
-		!releaseChannel || releaseChannel === 'stable'
-			? DEFAULT_TITLE
-			: `${DEFAULT_TITLE}[${releaseChannel.toUpperCase()}]`;
+	const channelSuffix =
+		!releaseChannel || releaseChannel === 'stable' ? '' : `[${releaseChannel.toUpperCase()}]`;
 
 	const currentState = ref<WorkflowTitleStatus | undefined>(undefined);
 
 	const set = (title: string) => {
-		const sections = [title || DEFAULT_TAGLINE, suffix];
-		(windowRef?.value?.document ?? document).title = sections.join(' - ');
+		const mainPart = title || DEFAULT_TAGLINE;
+		const docTitle = channelSuffix ? `${mainPart} - ${channelSuffix}` : mainPart;
+		(windowRef?.value?.document ?? document).title = docTitle;
 	};
 
 	const reset = () => {
