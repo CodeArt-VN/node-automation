@@ -156,11 +156,8 @@ test.describe(
 				expect(href).toContain(URLS.N8N_WORKFLOWS);
 
 				const url = new URL(href!);
-				const origin = await n8n.page.evaluate(() => window.location.origin);
-
 				const utmInstance = url.searchParams.get('utm_instance');
-				expect(utmInstance).toBeTruthy();
-				expect(decodeURIComponent(utmInstance!)).toContain(origin);
+				expect(utmInstance).toBeNull();
 
 				const utmVersion = url.searchParams.get('utm_n8n_version');
 				expect(utmVersion).toBeTruthy();

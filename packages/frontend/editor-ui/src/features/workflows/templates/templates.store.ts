@@ -40,7 +40,6 @@ export interface ITemplateState {
 	};
 	currentSessionId: string;
 	previousSessionId: string;
-	currentN8nPath: string;
 }
 
 const TEMPLATES_PAGE_SIZE = 20;
@@ -76,9 +75,6 @@ export const useTemplatesStore = defineStore(STORES.TEMPLATES, () => {
 	>({});
 	const currentSessionId = ref<string>('');
 	const previousSessionId = ref<string>('');
-	const currentN8nPath = ref<string>(
-		`${window.location.protocol}//${window.location.host}${window.BASE_PATH}`,
-	);
 
 	const settingsStore = useSettingsStore();
 	const rootStore = useRootStore();
@@ -178,7 +174,6 @@ export const useTemplatesStore = defineStore(STORES.TEMPLATES, () => {
 	const websiteTemplateRepositoryParameters = computed(() => {
 		const defaultParameters: Record<string, string> = {
 			...TEMPLATES_URLS.UTM_QUERY,
-			utm_instance: currentN8nPath.value,
 			utm_n8n_version: rootStore.versionCli,
 			utm_awc: String(workflowsListStore.activeWorkflows.length),
 		};
@@ -451,7 +446,6 @@ export const useTemplatesStore = defineStore(STORES.TEMPLATES, () => {
 		collectionSearches,
 		currentSessionId,
 		previousSessionId,
-		currentN8nPath,
 		allCategories,
 		getTemplatesById,
 		getFullTemplateById,
