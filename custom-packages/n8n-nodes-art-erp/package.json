@@ -1,0 +1,32 @@
+{
+  "name": "n8n-nodes-art-erp",
+  "version": "0.1.0",
+  "description": "ART ERP community node for n8n",
+  "keywords": [
+    "n8n-community-node-package"
+  ],
+  "license": "MIT",
+  "main": "index.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc --project tsconfig.json && mkdir -p dist/nodes/ArtErp && cp nodes/ArtErp/arterp.svg dist/nodes/ArtErp/arterp.svg"
+  },
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/ArtErpApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/ArtErp/ArtErp.node.js"
+    ]
+  },
+  "devDependencies": {
+    "n8n-workflow": "workspace:^",
+    "typescript": "^5.9.3"
+  },
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "node": "n8n-nodes-base.artErp",
+  "nodeVersion": "1.0",
+  "codexVersion": "1.0",
+  "categories": [
+    "Finance & Accounting"
+  ],
+  "resources": {
+    "primaryDocumentation": [
+      {
+        "url": ""
+      }
+    ]
+  }
+}
