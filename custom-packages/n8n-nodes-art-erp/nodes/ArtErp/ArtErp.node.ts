@@ -11,7 +11,7 @@ import { artErpApiRequest } from './GenericFunctions';
 
 export class ArtErp implements INodeType {
 	description: INodeTypeDescription = {
-		displayName: 'Art ERP',
+		displayName: 'ART ERP',
 		name: 'artErp',
 		icon: 'file:arterp.svg',
 		group: ['output'],
@@ -43,6 +43,10 @@ export class ArtErp implements INodeType {
 					{
 						name: 'Transaction',
 						value: 'transaction',
+					},
+					{
+						name: 'Account',
+						value: 'account',
 					},
 				],
 				default: 'incomingPayment',
@@ -80,6 +84,19 @@ export class ArtErp implements INodeType {
 					},
 				},
 				options: [{ name: 'Update', value: 'update', action: 'Update transactions' }],
+				default: 'update',
+			},
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
+				displayOptions: {
+					show: {
+						resource: ['account'],
+					},
+				},
+				options: [{ name: 'Update', value: 'update', action: 'Update bank accounts' }],
 				default: 'update',
 			},
 			{
@@ -185,6 +202,20 @@ export class ArtErp implements INodeType {
 					},
 				},
 			},
+			{
+				displayName: 'DTO Account Data',
+				name: 'body',
+				type: 'json',
+				default: '{}',
+				required: true,
+				description: 'JSON body for Account/Update (dtoAccountData)',
+				displayOptions: {
+					show: {
+						resource: ['account'],
+						operation: ['update'],
+					},
+				},
+			},
 		],
 	};
 
@@ -234,6 +265,11 @@ export class ArtErp implements INodeType {
 			if (resource === 'transaction' && operation === 'update') {
 				const body = this.getNodeParameter('body', i) as IDataObject;
 				responseData = await artErpApiRequest.call(this, 'POST', '/api/v1/BANK/Transaction/Update', body);
+			}
+
+			if (resource === 'account' && operation === 'update') {
+				const body = this.getNodeParameter('body', i) as IDataObject;
+				responseData = await artErpApiRequest.call(this, 'POST', '/api/v1/BANK/Account/Update', body);
 			}
 
 			const executionData = this.helpers.constructExecutionMetaData(

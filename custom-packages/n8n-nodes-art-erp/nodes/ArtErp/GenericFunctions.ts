@@ -7,12 +7,31 @@ import type {
 } from 'n8n-workflow';
 import { NodeApiError, NodeOperationError } from 'n8n-workflow';
 
+const packageMetadata = require('../../../package.json') as { version?: string };
+const APP_VERSION_HEADER_VALUE = `Automation${packageMetadata.version ?? '0.0.0'}`;
+
 type ArtErpTokenResponse = {
 	access_token?: string;
 	token?: string;
+	expires_in?: number;
 };
 
-async function getAccessToken(this: IExecuteFunctions): Promise<string> {
+type TokenCacheEntry = {
+	token: string;
+};
+
+const tokenCache = new Map<string, TokenCacheEntry>();
+
+function buildAuthorizationHeaderValue(username: string, password: string): string {
+	const encoded = Buffer.from(`${username}:${password}`).toString('base64');
+	return `Basic ${encoded}`;
+}
+
+function buildTokenCacheKey(domain: string, username: string): string {
+	return `${domain}::${username}`;
+}
+
+async function getAccessToken(this: IExecuteFunctions, forceRefresh = false): Promise<string> {
 	const credentials = await this.getCredentials('artErpApi');
 
 	if (!credentials) {
@@ -20,6 +39,8 @@ async function getAccessToken(this: IExecuteFunctions): Promise<string> {
 	}
 
 	const domain = credentials.domain as string | undefined;
+	const username = credentials.username as string | undefined;
+	const password = credentials.password as string | undefined;
 
 	if (!domain) {
 		throw new NodeOperationError(
@@ -28,12 +49,26 @@ async function getAccessToken(this: IExecuteFunctions): Promise<string> {
 		);
 	}
 
+	if (!username || !password) {
+		throw new NodeOperationError(this.getNode(), 'Username and password are required for ART ERP auth');
+	}
+
+	const cacheKey = buildTokenCacheKey(domain, username);
+	const cachedToken = tokenCache.get(cacheKey);
+
+	if (!forceRefresh && cachedToken) {
+		return cachedToken.token;
+	}
+
 	const tokenRequestOptions: IRequestOptions = {
 		method: 'POST',
-		uri: `${domain}/token`,
-		body: {
-			username: credentials.username,
-			password: credentials.password,
+		uri: `${domain}/Token`,
+		headers: {
+			'Content-Type': 'application/x-www-form-urlencoded',
+			Authorization: buildAuthorizationHeaderValue(username, password),
+		},
+		form: {
+			grant_type: 'password',
 		},
 		json: true,
 	};
@@ -45,6 +80,8 @@ async function getAccessToken(this: IExecuteFunctions): Promise<string> {
 		if (!token) {
 			throw new NodeOperationError(this.getNode(), 'Token was not found in ART ERP auth response');
 		}
+
+		tokenCache.set(cacheKey, { token });
 
 		return token;
 	} catch (error) {
@@ -60,7 +97,7 @@ export async function artErpApiRequest(
 	query: IDataObject = {},
 ) {
 	const credentials = await this.getCredentials('artErpApi');
-	const token = await getAccessToken.call(this);
+	let token = await getAccessToken.call(this);
 
 	if (!credentials) {
 		throw new NodeOperationError(this.getNode(), 'No credentials got returned');
@@ -83,6 +120,7 @@ export async function artErpApiRequest(
 		headers: {
 			Authorization: `Bearer ${token}`,
 			Accept: 'application/json',
+			'app-version': APP_VERSION_HEADER_VALUE,
 		},
 		json: true,
 	};
@@ -90,6 +128,19 @@ export async function artErpApiRequest(
 	try {
 		return await this.helpers.request(options);
 	} catch (error) {
+		const statusCode = (error as { statusCode?: number })?.statusCode;
+		if (statusCode === 401) {
+			token = await getAccessToken.call(this, true);
+			options.headers = {
+				...options.headers,
+				Authorization: `Bearer ${token}`,
+			};
+			try {
+				return await this.helpers.request(options);
+			} catch (retryError) {
+				throw new NodeApiError(this.getNode(), retryError as JsonObject);
+			}
+		}
 		throw new NodeApiError(this.getNode(), error as JsonObject);
 	}
 }

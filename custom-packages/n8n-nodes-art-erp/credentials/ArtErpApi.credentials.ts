@@ -1,4 +1,4 @@
-import type {
+﻿import type {
 	ICredentialTestRequest,
 	ICredentialType,
 	Icon,
@@ -8,11 +8,12 @@ import type {
 export class ArtErpApi implements ICredentialType {
 	name = 'artErpApi';
 
-	displayName = 'Art ERP API';
+	displayName = 'ART ERP API';
 
 	documentationUrl = 'https://docs.n8n.io/integrations/builtin/credentials/httprequest/';
 
-	icon: Icon = 'node:n8n-nodes-base.httpRequest';
+	// Resolved from dist/credentials/ (same folder as this credential's .js); copied at build time.
+	icon: Icon = 'file:arterp.svg';
 
 	properties: INodeProperties[] = [
 		{
@@ -45,12 +46,17 @@ export class ArtErpApi implements ICredentialType {
 	test: ICredentialTestRequest = {
 		request: {
 			baseURL: '={{$credentials.domain}}',
-			url: '/token',
+			url: '/Token',
 			method: 'POST',
+			headers: {
+				'Content-Type': 'application/x-www-form-urlencoded',
+				Authorization:
+					'={{"Basic " + Buffer.from($credentials.username + ":" + $credentials.password).toString("base64")}}',
+			},
 			body: {
-				username: '={{$credentials.username}}',
-				password: '={{$credentials.password}}',
+				grant_type: 'password',
 			},
 		},
 	};
 }
+
