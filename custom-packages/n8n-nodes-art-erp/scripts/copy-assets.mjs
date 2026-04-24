@@ -11,3 +11,6 @@ for (const dir of ['dist/nodes/ArtErp', 'dist/credentials']) {
 
 copyFileSync(svg, join(root, 'dist/nodes/ArtErp/arterp.svg'));
 copyFileSync(svg, join(root, 'dist/credentials/arterp.svg'));
+
+const nodeMeta = join(root, 'nodes/ArtErp/ArtErp.node.json');
+copyFileSync(nodeMeta, join(root, 'dist/nodes/ArtErp/ArtErp.node.json'));

@@ -1,16 +1,32 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500" viewBox="0 0 500 500" role="img">
   <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0f172a" />
-      <stop offset="100%" stop-color="#1d4ed8" />
+    <linearGradient id="wineGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6a0d22"/>
+      <stop offset="55%" stop-color="#4f0a1a"/>
+      <stop offset="100%" stop-color="#320513"/>
     </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="45%" r="55%">
+      <stop offset="0%" stop-color="#7b1a2f" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#2c0410" stop-opacity="0"/>
+    </radialGradient>
+    <path id="topArc" d="M 74 250 A 176 176 0 0 1 426 250"/>
+    <path id="bottomArc" d="M 64 250 A 186 186 0 0 0 436 250"/>
   </defs>
-  <rect width="512" height="512" rx="96" fill="url(#bg)" />
-  <circle cx="148" cy="256" r="28" fill="#22d3ee" />
-  <circle cx="256" cy="172" r="28" fill="#22d3ee" />
-  <circle cx="364" cy="256" r="28" fill="#22d3ee" />
-  <circle cx="256" cy="340" r="28" fill="#22d3ee" />
-  <path d="M172 256h164M256 196v116" stroke="#93c5fd" stroke-width="18" stroke-linecap="round" />
-  <rect x="160" y="392" width="192" height="52" rx="14" fill="#0b1220" />
-  <text x="256" y="427" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" font-weight="700" fill="#e2e8f0">API</text>
+  <rect x="0" y="0" width="500" height="500" rx="87.72" ry="87.72" fill="url(#wineGradient)"/>
+  <rect x="0" y="0" width="500" height="500" rx="87.72" ry="87.72" fill="url(#glow)"/>
+  <g fill="#e4c08a" font-family="Avenir, Arial, sans-serif" letter-spacing="8">
+    <text font-size="35" font-weight="400">
+      <textPath href="#topArc" startOffset="50%" text-anchor="middle">appcenter.vn</textPath>
+    </text>
+    <text font-size="22">
+      <textPath href="#bottomArc" startOffset="50%" text-anchor="middle">Power by CodeART</textPath>
+    </text>
+  </g>
+  <g stroke="#e4c08a" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.95">
+    <line x1="34" y1="250" x2="64.1" y2="250"/>
+    <path d="M 64.1 261 A 186 186 0 0 1 64.1 239"/>
+    <line x1="435.9" y1="250" x2="466" y2="250"/>
+    <path d="M 435.9 239 A 186 186 0 0 1 435.9 261"/>
+  </g>
+  <text x="250" y="290" text-anchor="middle" fill="#efcf9a" font-family="Avenir, Arial, sans-serif" font-size="120" font-weight="500" letter-spacing="9">ERP</text>
 </svg>

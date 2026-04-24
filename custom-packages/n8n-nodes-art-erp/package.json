@@ -6,12 +6,12 @@
     "n8n-community-node-package"
   ],
   "license": "MIT",
-  "main": "index.js",
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsc --project tsconfig.json && node scripts/copy-assets.mjs"
+    "build": "tsc --project tsconfig.json && node scripts/copy-assets.mjs",
+    "prepublishOnly": "npm run build"
   },
   "n8n": {
     "n8nNodesApiVersion": 1,
@@ -23,7 +23,7 @@
     ]
   },
   "devDependencies": {
-    "n8n-workflow": "workspace:^",
+    "n8n-workflow": "^2.16.0",
     "typescript": "^5.9.3"
   },
   "peerDependencies": {
