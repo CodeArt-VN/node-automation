@@ -29,6 +29,7 @@ nssm set $ServiceName AppEnvironmentExtra `
 	"NODE_ENV=development" `
 	"N8N_LICENSE_AUTO_RENEW_ENABLED=false" `
 	"N8N_RUNNERS_ENABLED=false" `
+	"N8N_PUBLIC_API_DISABLED=false" `
 	"N8N_PROXY_HOPS=1" `
 	"N8N_HOST=auto.appcenter.vn" `
 	"N8N_EDITOR_BASE_URL=https://auto.appcenter.vn" `
