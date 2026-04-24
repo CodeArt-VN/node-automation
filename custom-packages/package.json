@@ -11,6 +11,6 @@
   "license": "ISC",
   "packageManager": "pnpm@10.32.1",
   "dependencies": {
-    "n8n-nodes-art-erp": "file:n8n-nodes-art-erp\\n8n-nodes-art-erp-0.1.0.tgz"
+    
   }
 }

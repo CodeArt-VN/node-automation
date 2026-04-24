@@ -1,6 +1,6 @@
-﻿{
+{
   "name": "n8n-nodes-art-erp",
-  "version": "0.1.0",
+  "version": "1.0.1",
   "description": "ART ERP community node for n8n",
   "keywords": [
     "n8n-community-node-package"
@@ -30,4 +30,3 @@
     "n8n-workflow": "*"
   }
 }
-
