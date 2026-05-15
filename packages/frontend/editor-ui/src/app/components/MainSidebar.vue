@@ -21,9 +21,8 @@ import MainSidebarHeader from '@/app/components/MainSidebarHeader.vue';
 import BottomMenu from '@/app/components/BottomMenu.vue';
 import MainSidebarSourceControl from '@/app/components/MainSidebarSourceControl.vue';
 import ProjectNavigation from '@/features/collaboration/projects/components/ProjectNavigation.vue';
-import ResourceCenterTooltip from '@/experiments/resourceCenter/components/ResourceCenterTooltip.vue';
 import { useResourceCenterStore } from '@/experiments/resourceCenter/stores/resourceCenter.store';
-import { RESOURCE_CENTER_EXPERIMENT } from '@/app/constants';
+import { LOCAL_STORAGE_SIDEBAR_WIDTH } from '@/app/constants';
 import { useSidebarExpandedExperiment } from '@/experiments/sidebarExpanded';
 import { trackTemplatesClick, TemplateClickSource } from '@/experiments/utils';
 
@@ -42,8 +41,24 @@ const pageRedirectionHelper = usePageRedirectionHelper();
 const { applyExperiment: applySidebarExpandedExperiment } = useSidebarExpandedExperiment();
 applySidebarExpandedExperiment();
 
-const { isCollapsed, sidebarWidth, onResizeStart, onResize, onResizeEnd, toggleCollapse } =
-	useSidebarLayout();
+// RC-1: auto-expand sidebar once if not already expanded
+if (resourceCenterStore.shouldAutoExpandSidebar) {
+	if (uiStore.sidebarMenuCollapsed) {
+		uiStore.sidebarMenuCollapsed = false;
+		localStorage.setItem(LOCAL_STORAGE_SIDEBAR_WIDTH, '200');
+	}
+	resourceCenterStore.markSidebarAutoExpanded();
+}
+
+const {
+	isCollapsed,
+	isResizing,
+	sidebarWidth,
+	onResizeStart,
+	onResize,
+	onResizeEnd,
+	toggleCollapse,
+} = useSidebarLayout();
 
 const { settingsItems } = useSettingsItems();
 const { fetchWallet, isEnabled: isAiGatewayEnabled } = useAiGateway();
@@ -65,14 +80,6 @@ const showWhatsNewNotification = computed(
 
 const isResourceCenterEnabled = computed(() => resourceCenterStore.isFeatureEnabled());
 
-const resourceCenterLabel = computed(() => {
-	const variant = resourceCenterStore.getCurrentVariant();
-	if (variant === RESOURCE_CENTER_EXPERIMENT.variantInspiration) {
-		return i18n.baseText('experiments.resourceCenter.sidebar.inspiration');
-	}
-	return i18n.baseText('experiments.resourceCenter.sidebar');
-});
-
 const mainMenuItems = computed<IMenuItem[]>(() => [
 	{
 		id: 'cloud-admin',
@@ -84,8 +91,8 @@ const mainMenuItems = computed<IMenuItem[]>(() => [
 	{
 		// Resource Center - replaces Templates when experiment is enabled
 		id: 'resource-center',
-		icon: 'lightbulb',
-		label: resourceCenterLabel.value,
+		icon: { type: 'icon', value: 'lightbulb', color: 'primary' },
+		label: i18n.baseText('experiments.resourceCenter.sidebar'),
 		position: 'bottom',
 		available: isResourceCenterEnabled.value,
 		route: { to: { name: VIEWS.RESOURCE_CENTER } },
@@ -205,10 +212,6 @@ function openCommandBar(event: MouseEvent) {
 
 const handleSelect = (key: string) => {
 	switch (key) {
-		case 'resource-center': {
-			resourceCenterStore.markResourceCenterTooltipDismissed();
-			break;
-		}
 		case 'about': {
 			uiStore.openModal(ABOUT_MODAL_KEY);
 			break;
@@ -258,6 +261,7 @@ useKeybindings({
 		:class="{
 			[$style.sideMenu]: true,
 			[$style.sideMenuCollapsed]: isCollapsed,
+			[$style.sideMenuResizing]: isResizing,
 		}"
 		:width="sidebarWidth"
 		:style="isCollapsed ? {} : { width: `${sidebarWidth}px` }"
@@ -295,7 +299,6 @@ useKeybindings({
 			@select="handleSelect"
 		/>
 		<MainSidebarSourceControl :is-collapsed="isCollapsed" />
-		<ResourceCenterTooltip />
 	</N8nResizeWrapper>
 </template>
 
@@ -307,10 +310,16 @@ useKeybindings({
 	flex-direction: column;
 	border-right: var(--border);
 	background-color: var(--menu--color--background, var(--color--background--light-2));
+	transition: width var(--duration--snappy) var(--easing--ease-out);
+	will-change: width;
 
 	&.sideMenuCollapsed {
 		width: $sidebar-width;
 		min-width: auto;
+	}
+
+	&.sideMenuResizing {
+		transition: none;
 	}
 }
 

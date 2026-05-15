@@ -23,10 +23,9 @@ vi.mock('@n8n/permissions', () => ({
 }));
 
 vi.mock('vue-router', async (importOriginal) => ({
-	// eslint-disable-next-line @typescript-eslint/consistent-type-imports
-	...(await importOriginal<typeof import('vue-router')>()),
+	...(await importOriginal()),
 	useRoute: vi.fn().mockReturnValue({
-		params: { name: 'test' },
+		params: { workflowId: 'test' },
 		query: {},
 		meta: {
 			nodeView: true,
@@ -37,7 +36,7 @@ vi.mock('vue-router', async (importOriginal) => ({
 		replace: vi.fn(),
 		currentRoute: {
 			value: {
-				params: { name: 'test' },
+				params: { workflowId: 'test' },
 				query: {},
 			},
 		},
@@ -102,7 +101,8 @@ describe('MainHeader', () => {
 		sourceControlStore = mockedStore(useSourceControlStore);
 		collaborationStore = mockedStore(useCollaborationStore);
 
-		workflowsStore.workflow = {
+		workflowsStore.setWorkflowId('1');
+		workflowDocumentStore.hydrate({
 			id: '1',
 			name: 'Test Workflow',
 			active: false,
@@ -117,7 +117,7 @@ describe('MainHeader', () => {
 			connections: {},
 			tags: [],
 			meta: {},
-		};
+		});
 
 		workflowDocumentStore.setName('Test Workflow');
 
