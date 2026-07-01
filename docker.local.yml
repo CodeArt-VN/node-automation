@@ -5,7 +5,7 @@
 # Chạy: docker compose -f docker.local.yml up -d
 # Dừng: docker compose -f docker.local.yml down
 #
-# Task runners: broker n8n lắng nghe cổng 5679 trong network nội bộ compose.
+# Task runners (external mode): broker n8n lắng nghe cổng 5679 trong network compose.
 # Có thể đặt N8N_RUNNERS_AUTH_TOKEN trong .env (cùng thư mục) cho cả n8n và runners.
 
 name: codeart-automation
@@ -17,24 +17,24 @@ services:
     restart: unless-stopped
     environment:
       N8N_RELEASE_TYPE: stable
-    #   N8N_RUNNERS_MODE: external
-    #   N8N_RUNNERS_BROKER_LISTEN_ADDRESS: 0.0.0.0
-    #   N8N_RUNNERS_AUTH_TOKEN: ${N8N_RUNNERS_AUTH_TOKEN:-local-dev-runner-token}
+      N8N_RUNNERS_MODE: external
+      N8N_RUNNERS_BROKER_LISTEN_ADDRESS: 0.0.0.0
+      N8N_RUNNERS_AUTH_TOKEN: ${N8N_RUNNERS_AUTH_TOKEN:-local-dev-runner-token}
     ports:
       - '5678:5678'
     volumes:
       - Data:/home/node/.n8n
 
-#   task-runner:
-#     image: codeart/automation-runners:local
-#     container_name: codeart-automation-runners
-#     restart: unless-stopped
-#     environment:
-#       N8N_RELEASE_TYPE: stable
-#       N8N_RUNNERS_TASK_BROKER_URI: http://localhost:5679
-#       N8N_RUNNERS_AUTH_TOKEN: ${N8N_RUNNERS_AUTH_TOKEN:-local-dev-runner-token}
-#     depends_on:
-#       - automation
+  task-runner:
+    image: codeart/automation-runners:local
+    container_name: codeart-automation-runners
+    restart: unless-stopped
+    environment:
+      N8N_RELEASE_TYPE: stable
+      N8N_RUNNERS_TASK_BROKER_URI: http://automation:5679
+      N8N_RUNNERS_AUTH_TOKEN: ${N8N_RUNNERS_AUTH_TOKEN:-local-dev-runner-token}
+    depends_on:
+      - automation
 
 volumes:
   Data:

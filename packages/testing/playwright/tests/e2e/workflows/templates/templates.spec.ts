@@ -11,10 +11,6 @@ const TEMPLATE_HOST = {
 	CUSTOM: 'random.domain',
 } as const;
 
-const URLS = {
-	N8N_WORKFLOWS: 'https://n8n.io/workflows',
-} as const;
-
 const TEMPLATE_ID = '1';
 const TEST_CATEGORY = 'sales';
 const SALES_CATEGORY_ID = 3;
@@ -142,34 +138,6 @@ test.describe(
 	},
 	() => {
 		test.describe('For api.n8n.io', () => {
-			test('Opens website when clicking templates sidebar link', async ({
-				n8n,
-				setupRequirements,
-			}) => {
-				await setupRequirements(createTemplateHostRequirements());
-				await n8n.navigate.toWorkflows();
-
-				const templatesLink = n8n.sideBar.getTemplatesLink();
-				await expect(templatesLink).toBeVisible();
-
-				const href = await templatesLink.getAttribute('href');
-				expect(href).toContain(URLS.N8N_WORKFLOWS);
-
-				const url = new URL(href!);
-				const utmInstance = url.searchParams.get('utm_instance');
-				expect(utmInstance).toBeNull();
-
-				const utmVersion = url.searchParams.get('utm_n8n_version');
-				expect(utmVersion).toBeTruthy();
-				expect(utmVersion).toMatch(/[0-9]+\.[0-9]+\.[0-9]+/);
-
-				const utmAwc = url.searchParams.get('utm_awc');
-				expect(utmAwc).toBeTruthy();
-				expect(utmAwc).toMatch(/[0-9]+/);
-
-				await expect(templatesLink).toHaveAttribute('target', '_blank');
-			});
-
 			test('Redirects to website when visiting templates page directly', async ({
 				n8n,
 				setupRequirements,

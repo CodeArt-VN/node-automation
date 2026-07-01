@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import type { UsageTelemetry } from '../usage.store';
 import { useUsageStore } from '../usage.store';
@@ -12,21 +12,17 @@ import { hasPermission } from '@/app/utils/rbac/permissions';
 import { COMMUNITY_PLUS_ENROLLMENT_MODAL } from '../usage.constants';
 import { useUsersStore } from '@/features/settings/users/users.store';
 import { getResourcePermissions } from '@n8n/permissions';
-import { usePageRedirectionHelper } from '@/app/composables/usePageRedirectionHelper';
 import { I18nT } from 'vue-i18n';
 
-import { ElDialog } from 'element-plus';
 import {
 	N8nBadge,
 	N8nButton,
 	N8nHeading,
 	N8nInfoTip,
-	N8nInput,
 	N8nNotice,
 	N8nText,
 	N8nTooltip,
 } from '@n8n/design-system';
-import EulaAcceptanceModal from '../components/EulaAcceptanceModal.vue';
 
 const usageStore = useUsageStore();
 const route = useRoute();
@@ -35,20 +31,11 @@ const uiStore = useUIStore();
 const usersStore = useUsersStore();
 const toast = useToast();
 const documentTitle = useDocumentTitle();
-const pageRedirectionHelper = usePageRedirectionHelper();
 
-const queryParamCallback = ref<string>(
-	`callback=${encodeURIComponent(`${window.location.origin}${window.location.pathname}`)}`,
-);
-const viewPlansUrl = computed(
-	() => `${usageStore.viewPlansUrl}&${queryParamCallback.value}&source=usage_page`,
+const queryParamCallback = computed(
+	() => `callback=${encodeURIComponent(`${window.location.origin}${window.location.pathname}`)}`,
 );
 const managePlanUrl = computed(() => `${usageStore.managePlanUrl}&${queryParamCallback.value}`);
-const activationKeyModal = ref(false);
-const activationKey = ref('');
-const activationKeyInput = ref<HTMLInputElement | null>(null);
-const eulaModal = ref(false);
-const eulaUrl = ref('');
 
 const canUserActivateLicense = computed(() =>
 	hasPermission(['rbac'], { rbac: { scope: 'license:manage' } }),
@@ -72,88 +59,23 @@ const canUserRegisterCommunityPlus = computed(
 	() => getResourcePermissions(usersStore.currentUser?.globalScopes).community.register,
 );
 
-const showActivationSuccess = (eulaAccepted = false) => {
-	const message = eulaAccepted
-		? locale.baseText('settings.usageAndPlan.license.activation.success.message.eula', {
-				interpolate: { name: usageStore.planName },
-			})
-		: locale.baseText('settings.usageAndPlan.license.activation.success.message', {
-				interpolate: {
-					name: usageStore.planName,
-					type: usageStore.planId
-						? locale.baseText('settings.usageAndPlan.plan')
-						: locale.baseText('settings.usageAndPlan.edition'),
-				},
-			});
-
+const showActivationSuccess = () => {
 	toast.showMessage({
 		type: 'success',
 		title: locale.baseText('settings.usageAndPlan.license.activation.success.title'),
-		message,
+		message: locale.baseText('settings.usageAndPlan.license.activation.success.message', {
+			interpolate: {
+				name: usageStore.planName,
+				type: usageStore.planId
+					? locale.baseText('settings.usageAndPlan.plan')
+					: locale.baseText('settings.usageAndPlan.edition'),
+			},
+		}),
 	});
 };
 
 const showActivationError = (error: unknown) => {
 	toast.showError(error, locale.baseText('settings.usageAndPlan.license.activation.error.title'));
-};
-
-interface EulaErrorResponse {
-	httpStatusCode: number;
-	meta: { eulaUrl: string };
-}
-
-const isEulaError = (error: unknown): error is EulaErrorResponse => {
-	const e = error as EulaErrorResponse;
-	return e.httpStatusCode === 400 && !!e.meta?.eulaUrl;
-};
-
-const onLicenseActivation = async (eulaUri?: string) => {
-	try {
-		await usageStore.activateLicense(activationKey.value.trim(), eulaUri?.trim());
-		activationKeyModal.value = false;
-		eulaModal.value = false;
-		activationKey.value = '';
-		showActivationSuccess(!!eulaUri);
-	} catch (error: unknown) {
-		// Check if error requires EULA acceptance using type guard
-		if (isEulaError(error)) {
-			eulaUrl.value = error.meta.eulaUrl;
-			eulaModal.value = true;
-			activationKeyModal.value = false;
-			return;
-		}
-
-		showActivationError(error);
-	}
-};
-
-const onEulaAccept = async () => {
-	try {
-		await onLicenseActivation(eulaUrl.value);
-	} catch (error) {
-		// Error is already handled in onLicenseActivation
-		// This catch ensures modal errors don't break the UI
-		eulaModal.value = false;
-		showActivationError(error);
-	}
-};
-
-const onEulaCancel = () => {
-	eulaModal.value = false;
-	eulaUrl.value = '';
-	activationKey.value = '';
-};
-
-const onActivationCancel = () => {
-	activationKeyModal.value = false;
-	activationKey.value = '';
-};
-
-const onActivationModalClose = () => {
-	// Only clear key if not transitioning to EULA flow
-	if (!eulaModal.value) {
-		onActivationCancel();
-	}
 };
 
 onMounted(async () => {
@@ -191,22 +113,8 @@ const sendUsageTelemetry = (action: UsageTelemetry['action']) => {
 	telemetry.track('User clicked button on usage page', telemetryPayload);
 };
 
-const onAddActivationKey = () => {
-	activationKeyModal.value = true;
-	sendUsageTelemetry('add_activation_key');
-};
-
-const onViewPlans = () => {
-	void pageRedirectionHelper.goToUpgrade('usage_page', 'open');
-	sendUsageTelemetry('view_plans');
-};
-
 const onManagePlan = () => {
 	sendUsageTelemetry('manage_plan');
-};
-
-const onDialogOpened = () => {
-	activationKeyInput.value?.focus();
 };
 
 const openCommunityRegisterModal = () => {
@@ -293,72 +201,19 @@ const openCommunityRegisterModal = () => {
 
 			<N8nInfoTip>{{ locale.baseText('settings.usageAndPlan.activeWorkflows.hint') }}</N8nInfoTip>
 
-			<div :class="$style.buttons">
-				<N8nButton
-					variant="subtle"
-					v-if="canUserActivateLicense"
-					:class="$style.buttonTertiary"
-					size="large"
-					@click="onAddActivationKey"
-				>
-					<span>{{ locale.baseText('settings.usageAndPlan.button.activation') }}</span>
-				</N8nButton>
-				<N8nButton v-if="usageStore.managementToken" size="large" @click="onManagePlan">
+			<div v-if="usageStore.managementToken" :class="$style.buttons">
+				<N8nButton size="large" @click="onManagePlan">
 					<a :href="managePlanUrl" target="_blank">{{
 						locale.baseText('settings.usageAndPlan.button.manage')
 					}}</a>
 				</N8nButton>
-				<N8nButton v-else size="large" @click.prevent="onViewPlans">
-					<a :href="viewPlansUrl" target="_blank">{{
-						locale.baseText('settings.usageAndPlan.button.plans')
-					}}</a>
-				</N8nButton>
 			</div>
-
-			<ElDialog
-				v-model="activationKeyModal"
-				width="480px"
-				top="0"
-				:title="locale.baseText('settings.usageAndPlan.dialog.activation.title')"
-				:modal-class="$style.center"
-				@closed="onActivationModalClose"
-				@opened="onDialogOpened"
-			>
-				<template #default>
-					<N8nInput
-						ref="activationKeyInput"
-						v-model="activationKey"
-						:placeholder="locale.baseText('settings.usageAndPlan.dialog.activation.label')"
-					/>
-				</template>
-				<template #footer>
-					<div :class="$style.dialogButtonsContainer">
-						<N8nButton variant="subtle" @click="onActivationCancel">
-							{{ locale.baseText('settings.usageAndPlan.dialog.activation.cancel') }}
-						</N8nButton>
-						<N8nButton :disabled="!activationKey" @click="() => onLicenseActivation()">
-							{{ locale.baseText('settings.usageAndPlan.dialog.activation.activate') }}
-						</N8nButton>
-					</div>
-				</template>
-			</ElDialog>
-
-			<EulaAcceptanceModal
-				v-model="eulaModal"
-				:eula-url="eulaUrl"
-				@accept="onEulaAccept"
-				@cancel="onEulaCancel"
-			/>
 		</div>
 	</div>
 </template>
 
 <style lang="scss" module>
 @use '@/app/css/variables' as *;
-
-.center > div {
-	justify-content: center;
-}
 
 .actionBox {
 	margin: var(--spacing--2xl) 0 0;
@@ -447,30 +302,5 @@ div[class*='info'] > span > span:last-child {
 	display: flex;
 	align-items: center;
 	margin: 0 0 0 var(--spacing--2xs);
-}
-
-.dialogButtonsContainer {
-	display: flex;
-	justify-content: flex-end;
-}
-</style>
-
-<style lang="scss" scoped>
-.settings-usage-and-plan {
-	:deep(.el-dialog__wrapper) {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-
-		.el-dialog {
-			margin: 0;
-
-			.el-dialog__footer {
-				button {
-					margin-left: var(--spacing--xs);
-				}
-			}
-		}
-	}
 }
 </style>

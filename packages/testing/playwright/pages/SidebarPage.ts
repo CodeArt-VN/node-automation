@@ -122,14 +122,6 @@ export class SidebarPage {
 		return this.page.getByTestId('banners-TRIAL');
 	}
 
-	getTemplatesLink(): Locator {
-		return this.container.getByTestId('main-sidebar-templates').locator('a');
-	}
-
-	getVersionUpdateItem(): Locator {
-		return this.page.getByTestId('version-update-cta-button');
-	}
-
 	getSourceControlPushButton(): Locator {
 		return this.container.getByTestId('main-sidebar-source-control-push');
 	}

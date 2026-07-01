@@ -22,12 +22,6 @@ vi.mock('@/app/composables/useDocumentTitle', () => ({
 	}),
 }));
 
-vi.mock('@/app/composables/usePageRedirectionHelper', () => ({
-	usePageRedirectionHelper: () => ({
-		goToUpgrade: vi.fn(),
-	}),
-}));
-
 const mockRouteQuery: Record<string, string> = vi.hoisted(() => ({}));
 const mockReplace = vi.fn();
 
@@ -69,7 +63,6 @@ describe('SettingsUsageAndPlan', () => {
 		} as unknown as ReturnType<typeof useToast>;
 		vi.mocked(useToast).mockReturnValue(mockToast);
 
-		usageStore.viewPlansUrl = 'https://subscription.n8n.io';
 		usageStore.managePlanUrl = 'https://subscription.n8n.io';
 		usageStore.isLoading = false;
 		usageStore.setLoading = vi.fn((value: boolean) => {
@@ -123,252 +116,19 @@ describe('SettingsUsageAndPlan', () => {
 		expect(container.querySelector('.n8n-badge')).toHaveTextContent('Registered');
 	});
 
-	it('should show correct success message for non-EULA activation (edition)', async () => {
+	it('should not show activation or view plans buttons', async () => {
 		usageStore.isLoading = false;
 		usageStore.planName = 'Community';
-		usageStore.planId = '';
 		usersStore.currentUser = {
 			globalScopes: ['license:manage'],
 		} as IUser;
 		rbacStore.setGlobalScopes(['license:manage']);
-		usageStore.activateLicense.mockImplementation(async () => {});
 
-		const { getByRole } = renderComponent();
+		const { queryByRole } = renderComponent();
 
-		await userEvent.click(getByRole('button', { name: /activation/i }));
-		const input = document.querySelector('input') as HTMLInputElement;
-		await userEvent.type(input, 'test-key-123');
-		await userEvent.click(getByRole('button', { name: /activate/i }));
-
-		await waitFor(() => {
-			expect(usageStore.activateLicense).toHaveBeenCalledTimes(1);
-			expect(usageStore.activateLicense).toHaveBeenLastCalledWith('test-key-123', undefined);
-		});
-
-		expect(mockToast.showMessage).toHaveBeenCalledWith(
-			expect.objectContaining({
-				type: 'success',
-				title: 'License activated',
-				message: 'Your Community Edition has been successfully activated.',
-			}),
-		);
-	});
-
-	it('should show correct success message for non-EULA activation (plan)', async () => {
-		usageStore.isLoading = false;
-		usageStore.planName = 'Business';
-		usageStore.planId = 'business-2024';
-		usersStore.currentUser = {
-			globalScopes: ['license:manage'],
-		} as IUser;
-		rbacStore.setGlobalScopes(['license:manage']);
-		usageStore.activateLicense.mockImplementation(async () => {});
-
-		const { getByRole } = renderComponent();
-
-		await userEvent.click(getByRole('button', { name: /activation/i }));
-		const input = document.querySelector('input') as HTMLInputElement;
-		await userEvent.type(input, 'test-key-123');
-		await userEvent.click(getByRole('button', { name: /activate/i }));
-
-		await waitFor(() => {
-			expect(usageStore.activateLicense).toHaveBeenCalledTimes(1);
-			expect(usageStore.activateLicense).toHaveBeenLastCalledWith('test-key-123', undefined);
-		});
-
-		expect(mockToast.showMessage).toHaveBeenCalledWith(
-			expect.objectContaining({
-				type: 'success',
-				title: 'License activated',
-				message: 'Your Business Plan has been successfully activated.',
-			}),
-		);
-	});
-
-	describe('License activation with EULA', () => {
-		it('should show EULA modal when activation fails with 400 error and eulaUrl', async () => {
-			usageStore.isLoading = false;
-			usageStore.planName = 'Community';
-			usersStore.currentUser = {
-				globalScopes: ['license:manage'],
-			} as IUser;
-			rbacStore.setGlobalScopes(['license:manage']);
-
-			const { getByRole, findByTestId } = renderComponent();
-
-			const activationButton = getByRole('button', { name: /activation/i });
-			await userEvent.click(activationButton);
-
-			const input = document.querySelector('input') as HTMLInputElement;
-			await userEvent.type(input, 'test-key-123');
-
-			usageStore.activateLicense.mockRejectedValueOnce({
-				httpStatusCode: 400,
-				meta: { eulaUrl: 'https://example.com/eula.pdf' },
-			});
-
-			const activateButton = getByRole('button', { name: /activate/i });
-			await userEvent.click(activateButton);
-
-			await waitFor(async () => {
-				const eulaModal = await findByTestId('eula-acceptance-modal');
-				expect(eulaModal).toBeInTheDocument();
-			});
-		});
-
-		it('should handle EULA acceptance and retry license activation', async () => {
-			usageStore.isLoading = false;
-			usageStore.planName = 'Enterprise';
-			usersStore.currentUser = {
-				globalScopes: ['license:manage'],
-			} as IUser;
-			rbacStore.setGlobalScopes(['license:manage']);
-			usageStore.activateLicense
-				.mockRejectedValueOnce({
-					httpStatusCode: 400,
-					meta: { eulaUrl: 'https://example.com/eula.pdf' },
-				})
-				.mockResolvedValueOnce(undefined);
-
-			const { getByRole, findByTestId } = renderComponent();
-
-			await userEvent.click(getByRole('button', { name: /activation/i }));
-			const input = document.querySelector('input') as HTMLInputElement;
-			await userEvent.type(input, 'test-key-123');
-			await userEvent.click(getByRole('button', { name: /activate/i }));
-
-			const eulaModal = await findByTestId('eula-acceptance-modal');
-			expect(eulaModal).toBeInTheDocument();
-
-			const checkbox = await findByTestId('eula-checkbox');
-			await userEvent.click(checkbox);
-
-			const acceptButton = await findByTestId('eula-accept-button');
-			await userEvent.click(acceptButton);
-
-			await waitFor(() => {
-				expect(usageStore.activateLicense).toHaveBeenCalledTimes(2);
-				expect(usageStore.activateLicense).toHaveBeenLastCalledWith(
-					'test-key-123',
-					'https://example.com/eula.pdf',
-				);
-			});
-
-			expect(mockToast.showMessage).toHaveBeenCalledWith(
-				expect.objectContaining({
-					type: 'success',
-					title: 'License activated',
-					message: 'You have accepted the EULA and successfully activated your Enterprise plan.',
-				}),
-			);
-		});
-
-		it('should handle EULA cancellation', async () => {
-			usageStore.isLoading = false;
-			usageStore.planName = 'Community';
-			usersStore.currentUser = {
-				globalScopes: ['license:manage'],
-			} as IUser;
-			rbacStore.setGlobalScopes(['license:manage']);
-			usageStore.activateLicense.mockRejectedValueOnce({
-				httpStatusCode: 400,
-				meta: { eulaUrl: 'https://example.com/eula.pdf' },
-			});
-
-			const { getByRole, findByTestId } = renderComponent();
-
-			await userEvent.click(getByRole('button', { name: /activation/i }));
-			const input = document.querySelector('input') as HTMLInputElement;
-			await userEvent.type(input, 'test-key-123');
-			await userEvent.click(getByRole('button', { name: /activate/i }));
-
-			const eulaModal = await findByTestId('eula-acceptance-modal');
-			expect(eulaModal).toBeInTheDocument();
-
-			const cancelButton = await findByTestId('eula-cancel-button');
-			await userEvent.click(cancelButton);
-
-			expect(usageStore.activateLicense).toHaveBeenCalledTimes(1);
-		});
-
-		it('should preserve activation key during EULA flow and send it with acceptance', async () => {
-			usageStore.isLoading = false;
-			usageStore.planName = 'Community';
-			usersStore.currentUser = {
-				globalScopes: ['license:manage'],
-			} as IUser;
-			rbacStore.setGlobalScopes(['license:manage']);
-			usageStore.activateLicense
-				.mockRejectedValueOnce({
-					httpStatusCode: 400,
-					meta: { eulaUrl: 'https://example.com/eula.pdf' },
-				})
-				.mockResolvedValueOnce(undefined);
-
-			const { getByRole, findByTestId } = renderComponent();
-
-			// Open activation modal and enter key
-			await userEvent.click(getByRole('button', { name: /activation/i }));
-			const input = document.querySelector('input') as HTMLInputElement;
-			await userEvent.type(input, 'test-key-123');
-
-			// Click activate - this should trigger EULA modal
-			await userEvent.click(getByRole('button', { name: /activate/i }));
-
-			// EULA modal should appear
-			const eulaModal = await findByTestId('eula-acceptance-modal');
-			expect(eulaModal).toBeInTheDocument();
-
-			// Accept EULA
-			const checkbox = await findByTestId('eula-checkbox');
-			await userEvent.click(checkbox);
-
-			const acceptButton = await findByTestId('eula-accept-button');
-			await userEvent.click(acceptButton);
-
-			// Verify the activation key was preserved and sent with EULA acceptance
-			await waitFor(() => {
-				expect(usageStore.activateLicense).toHaveBeenCalledTimes(2);
-				// First call without EULA
-				expect(usageStore.activateLicense).toHaveBeenNthCalledWith(1, 'test-key-123', undefined);
-				// Second call with EULA URL - key should still be present
-				expect(usageStore.activateLicense).toHaveBeenNthCalledWith(
-					2,
-					'test-key-123',
-					'https://example.com/eula.pdf',
-				);
-			});
-
-			expect(mockToast.showMessage).toHaveBeenCalledWith(
-				expect.objectContaining({
-					type: 'success',
-				}),
-			);
-		});
-
-		it('should show error when activation fails without EULA requirement', async () => {
-			usageStore.isLoading = false;
-			usageStore.planName = 'Community';
-			usersStore.currentUser = {
-				globalScopes: ['license:manage'],
-			} as IUser;
-			rbacStore.setGlobalScopes(['license:manage']);
-
-			const { getByRole } = renderComponent();
-
-			await userEvent.click(getByRole('button', { name: /activation/i }));
-			const input = document.querySelector('input') as HTMLInputElement;
-			await userEvent.type(input, 'test-key-123');
-
-			const error = new Error('Invalid activation key');
-			usageStore.activateLicense.mockRejectedValueOnce(error);
-
-			await userEvent.click(getByRole('button', { name: /activate/i }));
-
-			await waitFor(() => {
-				expect(mockToast.showError).toHaveBeenCalledWith(error, 'Activation failed');
-			});
-		});
+		expect(queryByRole('button', { name: /activation/i })).not.toBeInTheDocument();
+		expect(queryByRole('link', { name: /plans/i })).not.toBeInTheDocument();
+		expect(queryByRole('button', { name: /plans/i })).not.toBeInTheDocument();
 	});
 
 	describe('License activation with query parameter', () => {
@@ -448,106 +208,6 @@ describe('SettingsUsageAndPlan', () => {
 				},
 				{ timeout: 2000 },
 			);
-		});
-	});
-
-	describe('Activation modal interactions', () => {
-		it('should open activation modal and show input', async () => {
-			usageStore.isLoading = false;
-			usersStore.currentUser = {
-				globalScopes: ['license:manage'],
-			} as IUser;
-			rbacStore.setGlobalScopes(['license:manage']);
-
-			const { getByRole } = renderComponent();
-
-			await waitAllPromises();
-
-			await waitFor(() => {
-				expect(usageStore.refreshLicenseManagementToken).toHaveBeenCalled();
-			});
-
-			await userEvent.click(getByRole('button', { name: /activation/i }));
-
-			await waitFor(
-				() => {
-					const input = document.querySelector('input') as HTMLInputElement;
-					expect(input).toBeTruthy();
-					expect(input).toBeVisible();
-					expect(input.placeholder).toBe('Activation key');
-				},
-				{ timeout: 2000 },
-			);
-		});
-
-		it('should handle modal close and reopen', async () => {
-			usageStore.isLoading = false;
-			usersStore.currentUser = {
-				globalScopes: ['license:manage'],
-			} as IUser;
-			rbacStore.setGlobalScopes(['license:manage']);
-
-			const { getByRole, findByPlaceholderText } = renderComponent();
-
-			await waitAllPromises();
-
-			await waitFor(() => {
-				expect(usageStore.refreshLicenseManagementToken).toHaveBeenCalled();
-			});
-
-			await userEvent.click(getByRole('button', { name: /activation/i }));
-			const input = await findByPlaceholderText('Activation key');
-			expect(input).toBeInTheDocument();
-
-			await userEvent.type(input, 'test-key');
-
-			const cancelButton = getByRole('button', { name: /cancel/i });
-			await userEvent.click(cancelButton);
-
-			await waitAllPromises();
-
-			await userEvent.click(getByRole('button', { name: /activation/i }));
-
-			await waitFor(async () => {
-				const reopenedInput = await findByPlaceholderText('Activation key');
-				expect(reopenedInput).toBeInTheDocument();
-			});
-		});
-
-		it('should clear activation key when cancel button is clicked', async () => {
-			usageStore.isLoading = false;
-			usersStore.currentUser = {
-				globalScopes: ['license:manage'],
-			} as IUser;
-			rbacStore.setGlobalScopes(['license:manage']);
-
-			const { getByRole, findByPlaceholderText } = renderComponent();
-
-			await waitAllPromises();
-
-			// Open activation modal
-			await userEvent.click(getByRole('button', { name: /activation/i }));
-			const input = await findByPlaceholderText('Activation key');
-			expect(input).toBeInTheDocument();
-
-			// Enter activation key
-			await userEvent.type(input, 'test-key-should-be-cleared');
-			expect(input).toHaveValue('test-key-should-be-cleared');
-
-			// Click cancel
-			const cancelButton = getByRole('button', { name: /cancel/i });
-			await userEvent.click(cancelButton);
-
-			await waitAllPromises();
-
-			// Reopen modal
-			await userEvent.click(getByRole('button', { name: /activation/i }));
-
-			// Input should be cleared
-			await waitFor(async () => {
-				const reopenedInput = await findByPlaceholderText('Activation key');
-				expect(reopenedInput).toHaveValue('');
-			});
 		});
 	});
 });

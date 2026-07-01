@@ -3,14 +3,12 @@ import { computed, onBeforeUnmount, onMounted, ref, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router';
 import { useI18n } from '@n8n/i18n';
 import { N8nScrollArea, N8nResizeWrapper, type IMenuItem } from '@n8n/design-system';
-import { ABOUT_MODAL_KEY, VIEWS, WHATS_NEW_MODAL_KEY } from '@/app/constants';
+import { ABOUT_MODAL_KEY, VIEWS } from '@/app/constants';
 import { hasPermission } from '@/app/utils/rbac/permissions';
 import { useRootStore } from '@n8n/stores/useRootStore';
 import { useCloudPlanStore } from '@/app/stores/cloudPlan.store';
 import { useSettingsStore } from '@/app/stores/settings.store';
-import { useTemplatesStore } from '@/features/workflows/templates/templates.store';
 import { useUIStore } from '@/app/stores/ui.store';
-import { useVersionsStore } from '@/app/stores/versions.store';
 import { useTelemetry } from '@/app/composables/useTelemetry';
 import { usePageRedirectionHelper } from '@/app/composables/usePageRedirectionHelper';
 import { useKeybindings } from '@/app/composables/useKeybindings';
@@ -24,16 +22,10 @@ import ProjectNavigation from '@/features/collaboration/projects/components/Proj
 import { useResourceCenterStore } from '@/experiments/resourceCenter/stores/resourceCenter.store';
 import { LOCAL_STORAGE_SIDEBAR_WIDTH } from '@/app/constants';
 import { useSidebarExpandedExperiment } from '@/experiments/sidebarExpanded';
-import { trackTemplatesClick, TemplateClickSource } from '@/experiments/utils';
-import { injectWorkflowDocumentStore } from '../stores/workflowDocument.store';
-
 const cloudPlanStore = useCloudPlanStore();
 const rootStore = useRootStore();
 const settingsStore = useSettingsStore();
-const templatesStore = useTemplatesStore();
 const uiStore = useUIStore();
-const versionsStore = useVersionsStore();
-const workflowDocumentStore = injectWorkflowDocumentStore();
 const resourceCenterStore = useResourceCenterStore();
 
 const i18n = useI18n();
@@ -72,14 +64,6 @@ const hasOverflow = ref(false);
 const hasScrolledFromTop = ref(false);
 let resizeObserver: ResizeObserver | null = null;
 
-const showWhatsNewNotification = computed(
-	() =>
-		versionsStore.hasVersionUpdates ||
-		versionsStore.whatsNewArticles.some(
-			(article) => !versionsStore.isWhatsNewArticleRead(article.id),
-		),
-);
-
 const isResourceCenterEnabled = computed(() => resourceCenterStore.isFeatureEnabled());
 
 const mainMenuItems = computed<IMenuItem[]>(() => [
@@ -100,33 +84,6 @@ const mainMenuItems = computed<IMenuItem[]>(() => [
 		route: { to: { name: VIEWS.RESOURCE_CENTER } },
 	},
 	{
-		// Link to in-app templates, available if custom templates are enabled and resource center is disabled
-		id: 'templates',
-		icon: 'package-open',
-		label: i18n.baseText('generic.templates'),
-		position: 'bottom',
-		available:
-			settingsStore.isTemplatesEnabled &&
-			templatesStore.hasCustomTemplatesHost &&
-			!isResourceCenterEnabled.value,
-		route: { to: { name: VIEWS.TEMPLATES } },
-	},
-	{
-		// Link to website templates, available if custom templates host is not configured and resource center is disabled
-		id: 'templates',
-		icon: 'package-open',
-		label: i18n.baseText('generic.templates'),
-		position: 'bottom',
-		available:
-			settingsStore.isTemplatesEnabled &&
-			!templatesStore.hasCustomTemplatesHost &&
-			!isResourceCenterEnabled.value,
-		link: {
-			href: templatesStore.websiteTemplateRepositoryURL,
-			target: '_blank',
-		},
-	},
-	{
 		id: 'insights',
 		icon: 'chart-column-decreasing',
 		label: 'Insights',
@@ -141,7 +98,6 @@ const mainMenuItems = computed<IMenuItem[]>(() => [
 		label: i18n.baseText('mainSidebar.settings'),
 		icon: 'settings',
 		available: true,
-		notification: showWhatsNewNotification.value,
 		children: settingsItems.value,
 	},
 ]);
@@ -222,27 +178,10 @@ const handleSelect = (key: string) => {
 			void pageRedirectionHelper.goToDashboard();
 			break;
 		}
-		case 'templates':
-			trackTemplatesClick(TemplateClickSource.sidebarButton);
-			break;
 		case 'insights':
 			telemetry.track('User clicked insights link from side menu');
 			break;
 		default:
-			if (key.startsWith('whats-new-article-')) {
-				const articleId = Number(key.replace('whats-new-article-', ''));
-
-				telemetry.track("User clicked on what's new section", {
-					article_id: articleId,
-				});
-				uiStore.openModalWithData({
-					name: WHATS_NEW_MODAL_KEY,
-					data: {
-						articleId,
-					},
-				});
-			}
-
 			break;
 	}
 };

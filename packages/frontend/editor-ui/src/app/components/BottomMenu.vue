@@ -1,17 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import {
-	N8nMenuItem,
-	N8nPopover,
-	N8nText,
-	isCustomMenuItem,
-	type IMenuItem,
-	type IMenuElement,
-} from '@n8n/design-system';
-import { RELEASE_NOTES_URL } from '@/app/constants';
-import { useVersionsStore } from '@/app/stores/versions.store';
-import VersionUpdateCTA from '@/app/components/VersionUpdateCTA.vue';
-import { useUsersStore } from '@/features/settings/users/users.store';
+import { N8nMenuItem, N8nPopover, isCustomMenuItem, type IMenuItem } from '@n8n/design-system';
 
 import { useI18n } from '@n8n/i18n';
 
@@ -25,55 +13,7 @@ const emit = defineEmits<{
 	logout: [];
 }>();
 
-const versionsStore = useVersionsStore();
-const usersStore = useUsersStore();
-
 const i18n = useI18n();
-
-const whatsNewItems = computed<{ available: boolean; children: IMenuElement[] }>(() => ({
-	available: versionsStore.hasVersionUpdates || versionsStore.whatsNewArticles.length > 0,
-	children: [
-		...versionsStore.whatsNewArticles.map(
-			(article) =>
-				({
-					id: `whats-new-article-${article.id}`,
-					label: article.title,
-					size: 'small',
-					customIconSize: 'small',
-					icon: {
-						type: 'emoji',
-						value: '•',
-						color: !versionsStore.isWhatsNewArticleRead(article.id) ? 'primary' : 'text-light',
-					},
-				}) satisfies IMenuItem,
-		),
-		{
-			id: 'full-changelog',
-			icon: 'external-link',
-			label: i18n.baseText('mainSidebar.whatsNew.fullChangelog'),
-			link: {
-				href: RELEASE_NOTES_URL,
-				target: '_blank',
-			},
-			size: 'small',
-			customIconSize: 'small',
-		},
-		...(versionsStore.hasVersionUpdates
-			? [
-					{
-						id: 'version-upgrade-cta',
-						component: VersionUpdateCTA,
-						props: {
-							tooltipText: !usersStore.canUserUpdateVersion
-								? i18n.baseText('whatsNew.updateNudgeTooltip')
-								: undefined,
-							disabled: !usersStore.canUserUpdateVersion,
-						},
-					},
-				]
-			: []),
-	],
-}));
 
 function handleSelect(key: string) {
 	emit('select', key);
@@ -110,19 +50,6 @@ function onLogout() {
 									v-bind="child.props"
 								/>
 								<N8nMenuItem v-else :item="child" @click="() => handleSelect(child.id)" />
-							</template>
-							<template v-if="whatsNewItems.available">
-								<N8nText bold size="small" :class="$style.popoverTitle" color="text-light"
-									>What's new</N8nText
-								>
-								<template v-for="child in whatsNewItems.children" :key="child.id">
-									<component
-										:is="child.component"
-										v-if="isCustomMenuItem(child)"
-										v-bind="child.props"
-									/>
-									<N8nMenuItem v-else :item="child" @click="() => handleSelect(child.id)" />
-								</template>
 							</template>
 							<span :class="$style.divider" />
 							<N8nMenuItem
@@ -183,13 +110,6 @@ function onLogout() {
 .popover {
 	padding: var(--spacing--4xs);
 	min-width: 260px;
-}
-
-.popoverTitle {
-	display: block;
-	margin-bottom: var(--spacing--3xs);
-	padding-left: var(--spacing--3xs);
-	margin-top: var(--spacing--xs);
 }
 
 .divider {
