@@ -1,5 +1,5 @@
-import { Logger } from '@n8n/backend-common';
 import { UpdateWorkflowHistoryVersionDto } from '@n8n/api-types';
+import { Logger } from '@n8n/backend-common';
 import type { User } from '@n8n/db';
 import {
 	WorkflowHistory,
@@ -12,14 +12,16 @@ import { Service } from '@n8n/di';
 import type { EntityManager } from '@n8n/typeorm';
 // eslint-disable-next-line n8n-local-rules/misplaced-n8n-typeorm-import
 import { In } from '@n8n/typeorm';
+import type { QueryDeepPartialEntity } from '@n8n/typeorm/query-builder/QueryPartialEntity';
 import type { IWorkflowBase } from 'n8n-workflow';
 import { ensureError, UnexpectedError } from 'n8n-workflow';
-
-import { WorkflowFinderService } from '../workflow-finder.service';
 
 import { SharedWorkflowNotFoundError } from '@/errors/shared-workflow-not-found.error';
 import { WorkflowHistoryVersionNotFoundError } from '@/errors/workflow-history-version-not-found.error';
 import { EventService } from '@/events/event.service';
+import type { WorkflowActionSource } from '@/events/maps/relay.event-map';
+
+import { WorkflowFinderService } from '../workflow-finder.service';
 
 @Service()
 export class WorkflowHistoryService {
@@ -37,7 +39,7 @@ export class WorkflowHistoryService {
 		workflowId: string,
 		take: number,
 		skip: number,
-	): Promise<Array<Omit<WorkflowHistory, 'nodes' | 'connections'>>> {
+	): Promise<Array<Omit<WorkflowHistory, 'nodes' | 'connections' | 'nodeGroups'>>> {
 		const workflow = await this.workflowFinderService.findWorkflowForUser(workflowId, user, [
 			'workflow:read',
 		]);
@@ -140,6 +142,7 @@ export class WorkflowHistoryService {
 				versionId: workflow.versionId,
 				nodes: workflow.nodes,
 				connections: workflow.connections,
+				nodeGroups: workflow.nodeGroups,
 			},
 			workflowId,
 		);
@@ -170,9 +173,11 @@ export class WorkflowHistoryService {
 			versionId: string;
 			nodes: IWorkflowBase['nodes'];
 			connections: IWorkflowBase['connections'];
+			nodeGroups?: IWorkflowBase['nodeGroups'];
 		},
 		workflowId: string,
 		autosaved = false,
+		source?: WorkflowActionSource,
 		transactionManager?: EntityManager,
 	) {
 		if (!workflow.nodes || !workflow.connections) {
@@ -181,7 +186,8 @@ export class WorkflowHistoryService {
 			);
 		}
 
-		const authors = typeof user === 'string' ? user : `${user.firstName} ${user.lastName}`;
+		const name = typeof user === 'string' ? user : `${user.firstName} ${user.lastName}`;
+		const authors = source === 'n8n-mcp' ? `${name} (via MCP)` : name;
 
 		const repository = transactionManager
 			? transactionManager.getRepository(WorkflowHistory)
@@ -192,6 +198,7 @@ export class WorkflowHistoryService {
 				authors,
 				connections: workflow.connections,
 				nodes: workflow.nodes,
+				nodeGroups: workflow.nodeGroups,
 				versionId: workflow.versionId,
 				workflowId,
 				autosaved,
@@ -260,7 +267,12 @@ export class WorkflowHistoryService {
 			'versionId' | 'workflowId' | 'createdAt' | 'updatedAt'
 		>,
 	) {
-		await this.workflowHistoryRepository.update({ versionId, workflowId }, updateData);
+		// Cast avoids a TypeORM `QueryDeepPartialEntity` deep-instantiation (TS2589);
+		// same workaround as workflow.service.ts / import.service.ts.
+		await this.workflowHistoryRepository.update(
+			{ versionId, workflowId },
+			updateData as QueryDeepPartialEntity<WorkflowHistory>,
+		);
 	}
 
 	/**

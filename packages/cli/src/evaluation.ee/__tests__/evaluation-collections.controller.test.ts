@@ -3,20 +3,21 @@ import type { Logger } from '@n8n/backend-common';
 import type { AuthenticatedRequest, User } from '@n8n/db';
 import { ControllerRegistryMetadata } from '@n8n/decorators';
 import { Container } from '@n8n/di';
-import { mock } from 'jest-mock-extended';
+import type { Mocked } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 
 import { BadRequestError } from '@/errors/response-errors/bad-request.error';
 import { NotFoundError } from '@/errors/response-errors/not-found.error';
 import type { PostHogClient } from '@/posthog';
 
-import { EvaluationCollectionsController } from '../evaluation-collections.controller.ee';
 import type { EvaluationCollectionService } from '../evaluation-collection.service';
+import { EvaluationCollectionsController } from '../evaluation-collections.controller.ee';
 
 describe('EvaluationCollectionsController', () => {
 	let controller: EvaluationCollectionsController;
-	let service: jest.Mocked<EvaluationCollectionService>;
-	let postHogClient: jest.Mocked<PostHogClient>;
-	let logger: jest.Mocked<Logger>;
+	let service: Mocked<EvaluationCollectionService>;
+	let postHogClient: Mocked<PostHogClient>;
+	let logger: Mocked<Logger>;
 
 	const user = mock<User>({ id: 'user-1' });
 
@@ -27,7 +28,7 @@ describe('EvaluationCollectionsController', () => {
 		// Default: flag ON for the user. Each test that needs flag-off semantics
 		// overrides this with `mockResolvedValueOnce({})` (no flag entry).
 		postHogClient.getFeatureFlags.mockResolvedValue({
-			eval_collections: true,
+			[EVAL_COLLECTIONS_FLAG]: true,
 		} as Record<string, boolean>);
 		controller = new EvaluationCollectionsController(service, postHogClient, logger);
 	});
@@ -100,10 +101,10 @@ describe('EvaluationCollectionsController', () => {
 			await expect(controller.list(makeReq({ workflowId: 'wf-1' }))).rejects.toThrow(NotFoundError);
 		});
 
-		it('uses the spec-declared flag id', () => {
+		it('uses the convention-prefixed flag id', () => {
 			// Future-proofs the rollout: if anyone renames the flag without
 			// also updating the spec/PostHog, this test fails immediately.
-			expect(EVAL_COLLECTIONS_FLAG).toBe('eval_collections');
+			expect(EVAL_COLLECTIONS_FLAG).toBe('084_eval_collections');
 		});
 	});
 

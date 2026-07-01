@@ -4,6 +4,7 @@ export * from './community-nodes';
 export * from './instance';
 export * from './execution';
 export * from './logstreaming';
+export * from './nodes';
 
 export const LICENSE_FEATURES = {
 	SHARING: 'feat:sharing',
@@ -19,6 +20,9 @@ export const LICENSE_FEATURES = {
 	EXTERNAL_SECRETS: 'feat:externalSecrets',
 	DEBUG_IN_EDITOR: 'feat:debugInEditor',
 	BINARY_DATA_S3: 'feat:binaryDataS3',
+	BINARY_DATA_AZURE: 'feat:binaryDataAz',
+	EXECUTION_DATA_S3: 'feat:executionDataS3',
+	EXECUTION_DATA_AZURE: 'feat:executionDataAz',
 	MULTIPLE_MAIN_INSTANCES: 'feat:multipleMainInstances',
 	WORKER_VIEW: 'feat:workerView',
 	ADVANCED_PERMISSIONS: 'feat:advancedPermissions',
@@ -43,6 +47,7 @@ export const LICENSE_FEATURES = {
 	PERSONAL_SPACE_POLICY: 'feat:personalSpacePolicy',
 	TOKEN_EXCHANGE: 'feat:tokenExchange',
 	DATA_REDACTION: 'feat:dataRedaction',
+	OTEL_CUSTOM_SPAN_ATTRIBUTES: 'feat:otel:customSpanAttributes',
 } as const;
 
 export const LICENSE_QUOTAS = {
@@ -57,6 +62,7 @@ export const LICENSE_QUOTAS = {
 	INSIGHTS_RETENTION_MAX_AGE_DAYS: 'quota:insights:retention:maxAgeDays',
 	INSIGHTS_RETENTION_PRUNE_INTERVAL_DAYS: 'quota:insights:retention:pruneIntervalDays',
 	WORKFLOWS_WITH_EVALUATION_LIMIT: 'quota:evaluations:maxWorkflows',
+	EVALUATION_CONCURRENCY_LIMIT: 'quota:evaluations:concurrencyLimit',
 } as const;
 
 export const UNLIMITED_LICENSE_QUOTA = -1;

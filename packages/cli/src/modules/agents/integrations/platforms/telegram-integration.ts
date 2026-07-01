@@ -1,5 +1,8 @@
-import { agentTelegramSettingsSchema, type AgentIntegrationSettings } from '@n8n/api-types';
+import { AgentIntegrationConfig } from '@n8n/api-types';
+import type { RichCardComponentType } from '@n8n/api-types';
 import { Logger } from '@n8n/backend-common';
+import { OutboundHttp, SsrfProtectionService } from '@n8n/backend-network';
+import { SsrfProtectionConfig } from '@n8n/config';
 import { Service } from '@n8n/di';
 import type { Thread, Author } from 'chat';
 import { createHmac } from 'crypto';
@@ -13,6 +16,7 @@ import { AgentRepository } from '../../repositories/agent.repository';
 import { AgentChatIntegration, type AgentChatIntegrationContext } from '../agent-chat-integration';
 import type { SuspendComponent } from '../component-mapper';
 import { loadTelegramAdapter } from '../esm-loader';
+import { resolveIntegrationActionDefinitions } from '../integration-tool-definitions';
 
 /**
  * Telegram platform integration.
@@ -39,7 +43,31 @@ export class TelegramIntegration extends AgentChatIntegration {
 
 	readonly displayIcon = 'telegram';
 
-	readonly supportedComponents = ['section', 'button', 'divider', 'fields'];
+	readonly builderGuidance = {
+		capabilities: [
+			'Receive Telegram messages as agent triggers.',
+			'Respond in Telegram conversations and send direct Telegram messages.',
+			'Render Telegram-compatible cards with buttons.',
+		],
+		useIntegrationWhen: [
+			'The agent should be chatted with from Telegram or act as a Telegram bot.',
+			'The agent needs to reply to Telegram users in the same conversation context.',
+			'The agent should send Telegram messages as the connected Telegram bot.',
+		],
+		useNodeToolWhen: [
+			'Telegram is only a backend API step and the agent does not need to be connected as a Telegram chat surface.',
+			'The request is a one-off Telegram operation from another trigger without ongoing Telegram conversation context.',
+		],
+	};
+
+	readonly supportedComponents: readonly RichCardComponentType[] = [
+		'section',
+		'button',
+		'divider',
+		'fields',
+	];
+
+	readonly actionToolDefinitions = resolveIntegrationActionDefinitions(['respond', 'send_dm']);
 
 	readonly needsShortCallbackData = true;
 
@@ -68,6 +96,9 @@ export class TelegramIntegration extends AgentChatIntegration {
 		private readonly urlService: UrlService,
 		private readonly agentRepository: AgentRepository,
 		private readonly instanceSettings: InstanceSettings,
+		private readonly outboundHttp: OutboundHttp,
+		private readonly ssrfConfig: SsrfProtectionConfig,
+		private readonly ssrfProtectionService: SsrfProtectionService,
 	) {
 		super();
 	}
@@ -111,18 +142,34 @@ export class TelegramIntegration extends AgentChatIntegration {
 
 	async onAfterConnect(ctx: AgentChatIntegrationContext): Promise<void> {
 		if (this.getMode() !== 'webhook') return;
-		const botToken = this.extractBotToken(ctx.credential);
 		const webhookUrl = ctx.webhookUrlFor('telegram');
 		const secretToken = this.deriveSecretToken(ctx.agentId, ctx.credentialId);
-		const resp = await fetch(`https://api.telegram.org/bot${botToken}/setWebhook`, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ url: webhookUrl, secret_token: secretToken }),
+		const response = await this.botApiRequest(ctx.credential, 'setWebhook', {
+			url: webhookUrl,
+			secret_token: secretToken,
 		});
-		if (!resp.ok) {
-			throw new Error(`Failed to register Telegram webhook: ${await resp.text()}`);
+		if (!this.isOkStatus(response.statusCode)) {
+			throw new Error(`Failed to register Telegram webhook: ${this.stringifyBody(response.body)}`);
 		}
 		this.logger.info(`[TelegramIntegration] Webhook registered: ${webhookUrl}`);
+	}
+
+	/**
+	 * Mirror of `onAfterConnect`: clear the webhook we registered on Telegram so
+	 * the bot is free for another agent or another application. Polling-mode
+	 * connections never registered a webhook with Telegram, so skip.
+	 */
+	async onBeforeDisconnect(ctx: AgentChatIntegrationContext): Promise<void> {
+		if (this.getMode() !== 'webhook') return;
+		const response = await this.botApiRequest(ctx.credential, 'deleteWebhook');
+		if (!this.isOkStatus(response.statusCode)) {
+			throw new Error(
+				`Failed to deregister Telegram webhook: ${this.stringifyBody(response.body)}`,
+			);
+		}
+		this.logger.info(
+			`[TelegramIntegration] Webhook deregistered for agent ${ctx.agentId}, credential ${ctx.credentialId}`,
+		);
 	}
 
 	/**
@@ -133,16 +180,17 @@ export class TelegramIntegration extends AgentChatIntegration {
 	 * they are normalized by stripping "@" before comparison. The SDK delivers
 	 * both userId and userName without "@".
 	 */
-	isUserAllowed(author: Author, settings: AgentIntegrationSettings | undefined): boolean {
-		if (!settings) return true;
-		const validConfig = agentTelegramSettingsSchema.safeParse(settings);
-		if (!validConfig.success) {
+	isUserAllowed(author: Author, integration: AgentIntegrationConfig | undefined): boolean {
+		if (!integration) return true;
+		if (integration?.type !== 'telegram') {
 			throw new UnexpectedError(
-				`Invalid Telegram integration settings: ${validConfig.error.message}`,
+				`TelegramIntegration received settings with type "${integration?.type}"`,
 			);
 		}
-		if (settings.accessMode === 'public') return true;
-		return settings.allowedUsers.some((allowed) => {
+		if (!integration.settings) return true;
+
+		if (integration.settings.accessMode === 'public') return true;
+		return integration.settings.allowedUsers.some((allowed) => {
 			const normalized = allowed.startsWith('@') ? allowed.slice(1) : allowed;
 			return normalized === author.userId || normalized === author.userName;
 		});
@@ -201,5 +249,47 @@ export class TelegramIntegration extends AgentChatIntegration {
 			'Could not extract a bot token from the Telegram credential. ' +
 				'Please ensure the credential has a valid access token from BotFather.',
 		);
+	}
+
+	/**
+	 * Build a Bot API URL honoring the credential's `baseUrl` (defaults to
+	 * `https://api.telegram.org`). Lets users on a self-hosted Bot API server
+	 * register/deregister webhooks against their own endpoint.
+	 */
+	private botApiUrl(credential: Record<string, unknown>, method: string): string {
+		const botToken = this.extractBotToken(credential);
+		const raw = credential.baseUrl;
+		const baseUrl =
+			typeof raw === 'string' && raw.trim()
+				? raw.trim().replace(/\/+$/, '')
+				: 'https://api.telegram.org';
+		return `${baseUrl}/bot${botToken}/${method}`;
+	}
+
+	private async botApiRequest(
+		credential: Record<string, unknown>,
+		method: string,
+		body?: Record<string, unknown>,
+	) {
+		return await this.outboundHttp
+			.requests({
+				// protection is applied because the Bot API host is user-configurable
+				ssrf: this.ssrfConfig.enabled ? this.ssrfProtectionService : 'disabled',
+			})
+			.request({
+				method: 'POST',
+				url: this.botApiUrl(credential, method),
+				...(body ? { body, json: true } : {}),
+				returnFullResponse: true,
+				ignoreHttpStatusErrors: true,
+			});
+	}
+
+	private isOkStatus(statusCode: number): boolean {
+		return statusCode >= 200 && statusCode < 300;
+	}
+
+	private stringifyBody(body: unknown): string {
+		return typeof body === 'string' ? body : JSON.stringify(body);
 	}
 }

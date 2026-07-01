@@ -25,6 +25,7 @@ import { useResourceCenterStore } from '@/experiments/resourceCenter/stores/reso
 import { LOCAL_STORAGE_SIDEBAR_WIDTH } from '@/app/constants';
 import { useSidebarExpandedExperiment } from '@/experiments/sidebarExpanded';
 import { trackTemplatesClick, TemplateClickSource } from '@/experiments/utils';
+import { injectWorkflowDocumentStore } from '../stores/workflowDocument.store';
 
 const cloudPlanStore = useCloudPlanStore();
 const rootStore = useRootStore();
@@ -32,6 +33,7 @@ const settingsStore = useSettingsStore();
 const templatesStore = useTemplatesStore();
 const uiStore = useUIStore();
 const versionsStore = useVersionsStore();
+const workflowDocumentStore = injectWorkflowDocumentStore();
 const resourceCenterStore = useResourceCenterStore();
 
 const i18n = useI18n();
